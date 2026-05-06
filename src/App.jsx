@@ -1925,12 +1925,39 @@ function TrainingSessionPanel({ onSaveTraining }) {
   );
 }
 
-function DatabaseSummary({ teamName, stats }) {
-  if (!stats) return <Card className="p-6 text-center text-sm text-slate-500">No hay partidos con los filtros seleccionados.</Card>;
+// ─── BASE DE DATOS – sub-views ────────────────────────────────────────────────
+
+function DatabaseInfoView({ teamName, stats, dbScope, setDbScope }) {
+  if (!stats) return (
+    <Card className="p-12 text-center">
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-3xl">📭</div>
+      <p className="font-black text-slate-700">Sin datos para este equipo</p>
+      <p className="mt-2 text-sm text-slate-400">No hay partidos con los filtros seleccionados.</p>
+    </Card>
+  );
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-black text-slate-800">Muestra estadística</p>
+            <p className="text-xs text-slate-400">Partidos incluidos en el análisis</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {SAMPLE_OPTIONS.map((opt) => (
+              <button key={opt} type="button" onClick={() => setDbScope(opt)}
+                className={cn("rounded-2xl px-3 py-1.5 text-xs font-black transition",
+                  dbScope === opt
+                    ? "bg-gradient-to-br from-orange-500 to-red-600 text-white shadow"
+                    : "bg-slate-100 text-slate-600 hover:bg-orange-50")}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
       <StatsGrid team={teamName} stats={stats} />
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <HeatMap teamName={teamName} stats={stats} />
         <PercentageReport teamName={teamName} stats={stats} />
       </div>
@@ -1939,35 +1966,62 @@ function DatabaseSummary({ teamName, stats }) {
 }
 
 function DatabaseTeamPanel({ teamName, players, matches }) {
-  const teamPlayers = players.filter((p) => p.team === teamName);
-  const teamMatches = getMatchesForTeam(matches, teamName);
+  const POS_COLORS = {
+    Portera: "bg-amber-100 text-amber-800",
+    Cierre: "bg-blue-100 text-blue-800",
+    Ala: "bg-emerald-100 text-emerald-800",
+    Pivot: "bg-violet-100 text-violet-800",
+    Universal: "bg-rose-100 text-rose-800",
+  };
+  const teamPlayers = players.filter((p) => p.team === teamName).sort((a, b) => a.dorsal - b.dorsal);
+  const teamMatches = sortByDateDesc(getMatchesForTeam(matches, teamName)).slice(0, 8);
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <div className="space-y-5">
       <Card className="p-5">
-        <SectionTitle title="Jugadoras registradas" subtitle={`${teamPlayers.length} jugadoras`} />
-        <div className="mt-4 space-y-3">
-          {teamPlayers.length ? teamPlayers.map((p) => (
-            <div key={p.id} className="grid grid-cols-1 gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center text-sm md:grid-cols-6 md:items-center">
-              <PlayerAvatar player={p} size="h-12 w-12" />
-              <div className="font-black text-slate-950">#{p.dorsal}</div>
-              <div className="font-bold text-slate-800 md:col-span-2">{playerName(p)}</div>
-              <div className="text-slate-500">{p.pos}</div>
-              <div className="font-bold text-slate-600">{calculateAge(p.birthDate)} años</div>
-            </div>
-          )) : <p className="text-center text-sm text-slate-500">Sin jugadoras.</p>}
-        </div>
+        <SectionTitle title="Plantilla" subtitle={`${teamPlayers.length} jugadoras registradas`} />
+        {teamPlayers.length ? (
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {teamPlayers.map((p) => (
+              <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                <PlayerAvatar player={p} size="h-11 w-11" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black text-slate-400">#{p.dorsal}</span>
+                    <span className="truncate text-sm font-black text-slate-900">{playerName(p)}</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-black", POS_COLORS[p.pos] || "bg-slate-100 text-slate-700")}>{p.pos}</span>
+                    <span className="text-[10px] text-slate-400">{calculateAge(p.birthDate)} años</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <p className="mt-4 py-8 text-center text-sm text-slate-400">Sin jugadoras registradas para este equipo.</p>}
       </Card>
       <Card className="p-5">
-        <SectionTitle title="Partidos analizados" subtitle={`${teamMatches.length} partidos`} />
-        <div className="mt-4 space-y-3">
-          {teamMatches.length ? teamMatches.map((m) => (
-            <div key={m.id} className="grid grid-cols-3 items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 text-center text-sm">
-              <div className="font-black text-slate-950">{m.date}</div>
-              <div className="font-bold text-slate-800">{m.teams[0]} vs {m.teams[1]}</div>
-              <div className="font-bold text-slate-600">{m.type}</div>
-            </div>
-          )) : <p className="text-center text-sm text-slate-500">Sin partidos.</p>}
-        </div>
+        <SectionTitle title="Historial de partidos" subtitle={`${teamMatches.length} partidos más recientes`} />
+        {teamMatches.length ? (
+          <div className="mt-4 space-y-2">
+            {teamMatches.map((m) => {
+              const my = getMatchStats(m, teamName);
+              const rival = m.teams[0] === teamName ? m.b : m.a;
+              const diff = my.goals - rival.goals;
+              const result = diff > 0 ? "V" : diff < 0 ? "D" : "E";
+              const badge = result === "V" ? "bg-emerald-500" : result === "D" ? "bg-red-500" : "bg-amber-400";
+              return (
+                <div key={m.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3">
+                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black text-white", badge)}>{result}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black text-slate-800">{teamName} <span className="font-normal text-slate-400">vs</span> {getOpponent(m, teamName)}</p>
+                    <p className="text-xs text-slate-400">{m.date} · {m.type}</p>
+                  </div>
+                  <span className="rounded-xl bg-slate-100 px-3 py-1 text-sm font-black text-slate-900">{getResult(m, teamName)}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : <p className="mt-4 py-8 text-center text-sm text-slate-400">Sin partidos registrados.</p>}
       </Card>
     </div>
   );
@@ -1979,34 +2033,43 @@ function TrainingsDatabasePanel({ trainings, matches, teamName }) {
   const filteredAll = sortByDateDesc(trainings.filter((t) => inDateRange(t, startDate, endDate)));
   const filtered = filteredAll.slice(0, 10);
   const anchor = filtered[0]?.date || endDate;
+  const totalUA = filtered.reduce((s, t) => s + safeNum(t.ua), 0);
+  const totalMin = filtered.reduce((s, t) => s + safeNum(t.realMinutes), 0);
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Card className="p-5">
-        <SectionTitle title="Base de datos · Entrenamientos" subtitle="Ultimos 10 entrenamientos del rango seleccionado." />
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <SectionTitle title="Entrenamientos" subtitle="Hasta 10 sesiones del rango seleccionado." />
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MiniInput label="Desde" type="date" value={startDate} onChange={setStartDate} />
           <MiniInput label="Hasta" type="date" value={endDate} onChange={setEndDate} />
-          <div className="flex items-end justify-center">
-            <div className="rounded-3xl bg-emerald-50 px-5 py-3 text-center">
-              <p className="text-xs font-black uppercase text-emerald-600">Entrenos visibles</p>
-              <p className="text-2xl font-black text-emerald-950">{filtered.length}</p>
-            </div>
+          <div className="rounded-3xl bg-violet-50 px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-violet-500">Carga total</p>
+            <p className="text-2xl font-black text-violet-950">{totalUA} <span className="text-sm">UA</span></p>
+          </div>
+          <div className="rounded-3xl bg-cyan-50 px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-500">Tiempo total</p>
+            <p className="text-2xl font-black text-cyan-950">{totalMin}<span className="text-sm">'</span></p>
           </div>
         </div>
       </Card>
       <MicrocycleChart trainings={filteredAll} matches={matches} teamName={teamName} anchorDate={anchor} />
       <Card className="p-5">
-        <SectionTitle title="Listado de entrenamientos" subtitle="Solo se muestran los 10 ultimos del rango." />
-        <div className="mt-4 space-y-3">
-          {filtered.map((t) => (
-            <div key={t.id} className="grid grid-cols-1 gap-3 rounded-3xl border border-slate-100 bg-white p-4 text-center shadow-sm md:grid-cols-5 md:items-center">
-              <div className="font-black text-slate-950">{t.date}</div>
-              <div className="font-bold text-slate-700 md:col-span-2">{t.title}</div>
-              <div className="rounded-2xl bg-violet-50 p-2 font-black text-violet-900">{t.ua} UA</div>
-              <div className="rounded-2xl bg-cyan-50 p-2 font-black text-cyan-900">{t.realMinutes}'</div>
+        <SectionTitle title="Listado de sesiones" subtitle={`${filtered.length} sesiones en el rango.`} />
+        <div className="mt-4 space-y-2">
+          {filtered.map((t, i) => (
+            <div key={t.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-black text-slate-600">{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-slate-800">{t.title}</p>
+                <p className="text-xs text-slate-400">{t.date} · RPE {t.avgRpe}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-xl bg-violet-100 px-3 py-1 text-sm font-black text-violet-900">{t.ua} UA</span>
+                <span className="rounded-xl bg-cyan-100 px-3 py-1 text-sm font-black text-cyan-900">{t.realMinutes}'</span>
+              </div>
             </div>
           ))}
-          {!filtered.length && <p className="text-sm text-slate-500">Sin entrenamientos en el rango seleccionado.</p>}
+          {!filtered.length && <p className="py-8 text-center text-sm text-slate-400">Sin entrenamientos en el rango seleccionado.</p>}
         </div>
       </Card>
     </div>
@@ -2019,65 +2082,109 @@ function MatchesDatabasePanel({ matches, teamName }) {
   const leagueMatches = sortByDateDesc(
     matches.filter((m) => m.type === "Liga" && m.teams.includes(teamName) && inDateRange(m, startDate, endDate))
   ).slice(0, 10);
+  const wins = leagueMatches.filter((m) => { const my = getMatchStats(m, teamName); const rv = m.teams[0] === teamName ? m.b : m.a; return my.goals > rv.goals; }).length;
+  const draws = leagueMatches.filter((m) => { const my = getMatchStats(m, teamName); const rv = m.teams[0] === teamName ? m.b : m.a; return my.goals === rv.goals; }).length;
+  const losses = leagueMatches.length - wins - draws;
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Card className="p-5">
-        <SectionTitle title="Base de datos · Partidos" subtitle="Partidos de liga analizados, con calendario para segmentar." />
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <SectionTitle title="Partidos de liga" subtitle="Hasta 10 partidos del rango seleccionado." />
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
           <MiniInput label="Desde" type="date" value={startDate} onChange={setStartDate} />
           <MiniInput label="Hasta" type="date" value={endDate} onChange={setEndDate} />
-          <div className="flex items-end justify-center">
-            <div className="rounded-3xl bg-orange-50 px-5 py-3 text-center">
-              <p className="text-xs font-black uppercase text-orange-600">Partidos visibles</p>
-              <p className="text-2xl font-black text-orange-950">{leagueMatches.length}</p>
-            </div>
+          <div className="rounded-3xl bg-emerald-50 px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Victorias</p>
+            <p className="text-2xl font-black text-emerald-900">{wins}</p>
+          </div>
+          <div className="rounded-3xl bg-amber-50 px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Empates</p>
+            <p className="text-2xl font-black text-amber-900">{draws}</p>
+          </div>
+          <div className="rounded-3xl bg-red-50 px-4 py-3 text-center">
+            <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Derrotas</p>
+            <p className="text-2xl font-black text-red-900">{losses}</p>
           </div>
         </div>
       </Card>
       <div className="space-y-4">
         {leagueMatches.map((m) => {
           const stats = getMatchStats(m, teamName);
+          const rv = m.teams[0] === teamName ? m.b : m.a;
+          const diff = stats.goals - rv.goals;
+          const result = diff > 0 ? "V" : diff < 0 ? "D" : "E";
+          const gradients = { V: "from-emerald-500 to-green-600", D: "from-red-500 to-rose-600", E: "from-amber-400 to-orange-500" };
           return (
             <Card key={m.id} className="p-5">
-              <div className="mb-4 grid grid-cols-1 gap-3 text-center md:grid-cols-4 md:items-center">
-                <div className="font-black text-slate-950">{m.date}</div>
-                <div className="font-black text-slate-800 md:col-span-2">{teamName} vs {getOpponent(m, teamName)}</div>
-                <div className="rounded-2xl bg-orange-100 px-3 py-2 font-black text-orange-900">{getResult(m, teamName)}</div>
+              <div className="mb-4 flex items-center gap-4">
+                <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br text-lg font-black text-white shadow", gradients[result])}>{result}</div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-black text-slate-900">{teamName} <span className="font-normal text-slate-400">vs</span> {getOpponent(m, teamName)}</p>
+                  <p className="text-xs text-slate-400">{m.date} · Liga</p>
+                </div>
+                <span className="rounded-2xl bg-slate-100 px-4 py-2 text-lg font-black text-slate-900">{getResult(m, teamName)}</span>
               </div>
               <StatsGrid team={teamName} stats={stats} />
             </Card>
           );
         })}
-        {!leagueMatches.length && <Card className="p-6 text-center text-sm text-slate-500">Sin partidos de liga en el rango seleccionado.</Card>}
+        {!leagueMatches.length && (
+          <Card className="p-12 text-center">
+            <p className="text-slate-400">Sin partidos de liga en el rango seleccionado.</p>
+          </Card>
+        )}
       </div>
     </div>
   );
 }
 
 function DatabasePanel({ teams, players, matches, trainings, dbTeam, setDbTeam, dbScope, setDbScope, dbStats, dbView, setDbView }) {
+  const VIEWS = [
+    { key: "informacion", label: "Información" },
+    { key: "equipo", label: "Equipo" },
+    { key: "entrenamientos", label: "Entrenamientos" },
+    { key: "partidos", label: "Partidos" },
+  ];
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {teams.length ? teams.map((team) => (
-          <button key={team.id} type="button" onClick={() => setDbTeam(team.name)}
-            className={cn("rounded-3xl border bg-white p-4 text-center shadow-sm transition", dbTeam === team.name ? "ring-4 ring-amber-300" : "")}>
-            <LogoChip name={team.name} logo={team.logo} logoUrl={team.logoUrl} />
-          </button>
-        )) : <Card className="p-6 text-center text-sm text-slate-500">No hay equipos en esta temporada.</Card>}
-      </div>
+    <div className="space-y-5">
+      {/* Team selector – horizontal scrollable strip */}
       <Card className="p-4">
-        <div className="flex flex-wrap justify-center gap-2">
-          {[["informacion", "Informacion"], ["equipo", "Equipo"], ["entrenamientos", "Entrenamientos"], ["partidos", "Partidos"]].map(([key, label]) => (
-            <Button key={key} active={dbView === key} variant="soft" onClick={() => setDbView(key)}>{label}</Button>
-          ))}
-        </div>
+        <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Seleccionar equipo</p>
+        {teams.length ? (
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+            {teams.map((team) => (
+              <button key={team.id} type="button" onClick={() => setDbTeam(team.name)}
+                className={cn(
+                  "flex min-w-fit items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-bold transition-all",
+                  dbTeam === team.name
+                    ? "border-orange-500 bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-md shadow-orange-200"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50"
+                )}>
+                <span className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[11px] font-black",
+                  dbTeam === team.name ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
+                )}>{team.logo}</span>
+                <span className="whitespace-nowrap">{team.name === MY_TEAM ? "★ " + team.name : team.name}</span>
+              </button>
+            ))}
+          </div>
+        ) : <p className="text-sm text-slate-400">Sin equipos en esta temporada.</p>}
       </Card>
-      {dbView === "informacion" && (
-        <div className="space-y-4">
-          <Card className="p-4"><SelectBox label="Filtro · Muestra" value={dbScope} onChange={setDbScope} options={SAMPLE_OPTIONS} /></Card>
-          <DatabaseSummary teamName={dbTeam} stats={dbStats} />
-        </div>
-      )}
+      {/* Sub-view tabs */}
+      <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
+        {VIEWS.map((v) => (
+          <button key={v.key} type="button" onClick={() => setDbView(v.key)}
+            className={cn(
+              "min-w-fit rounded-2xl px-5 py-2.5 text-sm font-black transition-all",
+              dbView === v.key
+                ? "bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-md"
+                : "border border-slate-200 bg-white text-slate-600 hover:border-orange-200 hover:bg-orange-50"
+            )}>
+            {v.label}
+          </button>
+        ))}
+      </div>
+      {/* Content */}
+      {dbView === "informacion" && <DatabaseInfoView teamName={dbTeam} stats={dbStats} dbScope={dbScope} setDbScope={setDbScope} />}
       {dbView === "equipo" && <DatabaseTeamPanel teamName={dbTeam} players={players} matches={matches} />}
       {dbView === "entrenamientos" && <TrainingsDatabasePanel trainings={trainings} matches={matches} teamName={dbTeam} />}
       {dbView === "partidos" && <MatchesDatabasePanel matches={matches} teamName={dbTeam} />}
