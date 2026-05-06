@@ -580,11 +580,17 @@ function LogoChip({ name, logo, logoUrl }) {
 
 function PlayerAvatar({ player, size = "h-10 w-10" }) {
   if (player.photoUrl) {
-    return <img src={player.photoUrl} className={cn("shrink-0 rounded-xl object-cover", size)} alt={playerName(player)} />;
+    return (
+      <div className={cn("shrink-0 rounded-xl p-[2px]", size, "bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500")}>
+        <img src={player.photoUrl} className="h-full w-full rounded-[9px] object-cover" alt={playerName(player)} />
+      </div>
+    );
   }
   return (
-    <div className={cn("flex shrink-0 items-center justify-center rounded-xl bg-slate-900 text-xs font-black text-white", size)}>
-      {player.photo || initials(playerName(player))}
+    <div className={cn("shrink-0 rounded-xl p-[2px]", size, "bg-gradient-to-br from-violet-500 via-fuchsia-500 to-pink-500")}>
+      <div className="flex h-full w-full items-center justify-center rounded-[9px] bg-slate-900 text-xs font-black text-white">
+        {player.photo || initials(playerName(player))}
+      </div>
     </div>
   );
 }
@@ -1703,7 +1709,9 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
                   <div className="flex items-center gap-3 bg-gradient-to-r from-slate-700 to-slate-900 px-3 py-3">
                     {team.logoUrl
                       ? <img src={team.logoUrl} className="h-11 w-11 shrink-0 rounded-xl object-cover" alt={team.name} />
-                      : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-yellow-400 bg-red-100 text-sm font-black text-red-900">{team.logo || initials(team.name)}</div>
+                      : <div className="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 p-[2.5px]">
+                          <div className="flex h-full w-full items-center justify-center rounded-[9px] bg-red-50 text-sm font-black text-red-900">{team.logo || initials(team.name)}</div>
+                        </div>
                     }
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-black text-white">
@@ -2387,13 +2395,20 @@ export default function App() {
           userName={userName}
           userRole={userRole}
         />
-        <main onClick={() => setVisualFocusGroup("")} className="min-w-0 flex-1 p-4 md:p-8">
+        <main onClick={() => setVisualFocusGroup("")} className="min-w-0 flex-1 bg-gradient-to-br from-slate-100 via-white to-violet-50/40 p-4 md:p-8">
           <div className="mx-auto max-w-7xl space-y-6">
-            <header className="rounded-[32px] border border-white/80 bg-white/90 p-6 text-center shadow-sm backdrop-blur">
-              <p className="text-xs font-black uppercase tracking-[0.24em] text-violet-600">Endania Coach</p>
-              <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">{currentTitle}</h1>
-              <p className="mt-1 text-sm font-semibold text-slate-500">Panel de analisis de rendimiento y scouting</p>
-            </header>
+            {mainTab === "registro" ? (
+              <header className="rounded-[32px] border border-violet-200/60 bg-gradient-to-r from-violet-600 to-fuchsia-600 p-7 text-center shadow-lg">
+                <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">REGISTRO</h1>
+                <p className="mt-2 text-sm font-semibold text-white/75">Alta y edición de jugadores y equipos</p>
+              </header>
+            ) : (
+              <header className="rounded-[32px] border border-white/80 bg-white/90 p-6 text-center shadow-sm backdrop-blur">
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-violet-600">Endania Coach</p>
+                <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950">{currentTitle}</h1>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Panel de analisis de rendimiento y scouting</p>
+              </header>
+            )}
 
             <ErrorBoundary>
               {mainTab === "offline" && (
