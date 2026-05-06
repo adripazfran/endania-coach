@@ -1980,7 +1980,7 @@ function DatabaseTeamPanel({ teamName, players, matches }) {
       <Card className="p-5">
         <SectionTitle title="Plantilla" subtitle={`${teamPlayers.length} jugadoras registradas`} />
         {teamPlayers.length ? (
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
             {teamPlayers.map((p) => (
               <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
                 <PlayerAvatar player={p} size="h-11 w-11" />
@@ -2154,13 +2154,13 @@ function DatabasePanel({ teams, players, matches, trainings, dbTeam, setDbTeam, 
             {teams.map((team) => (
               <button key={team.id} type="button" onClick={() => setDbTeam(team.name)}
                 className={cn(
-                  "flex min-w-fit items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-bold transition-all",
+                  "flex min-w-fit items-center gap-3 rounded-2xl border px-4 py-2.5 text-sm font-bold transition-all",
                   dbTeam === team.name
                     ? "border-orange-500 bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-md shadow-orange-200"
                     : "border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50"
                 )}>
                 <span className={cn(
-                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[11px] font-black",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black",
                   dbTeam === team.name ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
                 )}>{team.logo}</span>
                 <span className="whitespace-nowrap">{team.name === MY_TEAM ? "★ " + team.name : team.name}</span>
