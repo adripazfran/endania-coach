@@ -60,7 +60,6 @@ const NAV_GROUPS = [
     activeBg: "from-yellow-500 to-amber-700", accent: "from-yellow-300 to-amber-500",
     items: [
       { label: "Directo", icon: "◉", main: "live", sub: "Directo" },
-      { label: "Jugadoras", icon: "●", main: "live", sub: "Jugadoras" },
     ],
   },
 ];
@@ -1134,45 +1133,277 @@ function RecommendationPanel() {
   );
 }
 
-// FIX: LivePanel con estado real para el DAFO
-function LivePanel({ liveTab, players }) {
-  const [dafoBoth, setDafoBoth] = useState({ mine: "", rival: "" });
+const DAFO_CATS = ["Ataque", "Defensa", "ABP", "Situaciones especiales", "Portero", "Otros"];
 
-  if (liveTab === "Directo") {
-    return (
-      <div className="space-y-6">
-        <Card className="p-5">
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button variant="soft">Nota teclado</Button>
-            <Button variant="soft">Audio</Button>
-            <Button>Live</Button>
-          </div>
-        </Card>
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <TextAreaBlock title="DAFO · Mi equipo" value={dafoBoth.mine} onChange={(v) => setDafoBoth((c) => ({ ...c, mine: v }))} placeholder="Fortalezas, debilidades, oportunidades, amenazas..." />
-          <TextAreaBlock title="DAFO · Rival" value={dafoBoth.rival} onChange={(v) => setDafoBoth((c) => ({ ...c, rival: v }))} placeholder="Fortalezas, debilidades, oportunidades, amenazas..." />
-        </div>
-      </div>
+function iaAnalysis(cat, notes) {
+  if (!notes || notes.trim().length < 10)
+    return "Añade observaciones para que la IA analice esta categoría.";
+  const map = {
+    "Ataque": "Según tus notas y el historial del equipo, el patrón ofensivo muestra buena salida de presión y juego con pivot. La eficacia en finalización de segundo palo es el punto diferencial a mantener.",
+    "Defensa": "La presión alta está siendo efectiva según tus observaciones. El historial indica que las pérdidas tras recuperación son el punto más débil — controlarlo es clave para el resultado.",
+    "ABP": "Las acciones a balón parado ofensivas tienen margen de mejora. Los datos históricos muestran oportunidades claras en bandas cercanas y corners con segundo palo.",
+    "Situaciones especiales": "Las superioridades e inferioridades requieren atención inmediata. El historial muestra buena respuesta en 5x4 pero dificultades en 4x5 que hay que corregir.",
+    "Portero": "La portera muestra solidez en transición según tus notas. Los datos previos confirman buen rendimiento en 1x1 y en el juego de pies con salida de presión.",
+    "Otros": "Observaciones generales registradas. Cruzar con los datos de entrenamiento de la semana para ajustar la intervención táctica en la segunda parte.",
+  };
+  return map[cat] || "Analizando datos del partido...";
+}
+
+function iaRecommendation(cat, notes) {
+  if (!notes || notes.trim().length < 10)
+    return "Sin datos suficientes. Añade observaciones primero.";
+  const map = {
+    "Ataque": "2ª parte: aumentar el ritmo con pivot en los primeros 5 minutos, explotar el segundo palo en cada ABP y mantener la salida de presión como sistema de inicio ofensivo.",
+    "Defensa": "Ajuste táctico: si el marcador es favorable en el último cuarto, bajar la línea defensiva. Reforzar la cobertura en transición ofensiva del rival tras pérdida.",
+    "ABP": "Activar bandas medias ofensivas y corner con segundo palo. En defensa, revisar la marcación en falta lateral que ha dado problemas en el primer período.",
+    "Situaciones especiales": "Si el marcador lo permite, activar el 5x4 en el último cuarto. En inferioridad, priorizar la organización defensiva sobre la presión alta.",
+    "Portero": "Indicar a la portera que active el juego largo en salidas de presión para sorprender al rival en transición rápida y aprovechar la velocidad de las alas.",
+    "Otros": "Revisar el estado físico del equipo y considerar rotaciones con jugadoras de alto minutaje. Reforzar la comunicación en pista en los momentos de más presión.",
+  };
+  return map[cat] || "Generando recomendaciones para la segunda parte...";
+}
+
+function LivePanel({ players, teams }) {
+  const [showConvocatoria, setShowConvocatoria] = useState(false);
+  const [convocadas, setConvocadas] = useState([]);
+  const [rival, setRival] = useState("— Selecciona rival —");
+  const [showLive, setShowLive] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [notesMine, setNotesMine] = useState("");
+  const [notesRival, setNotesRival] = useState("");
+  const [timers, setTimers] = useState({});
+  const [dafoCats, setDafoCats] = useState(
+    Object.fromEntries(DAFO_CATS.map((cat) => [cat, { notes: "" }]))
+  );
+
+  const myPlayers = players.filter((p) => p.team === MY_TEAM);
+  const rivalOptions = ["— Selecciona rival —", ...teams.filter((t) => t.name !== MY_TEAM).map((t) => t.name)];
+  const convocadasPlayers = convocadas.length > 0
+    ? myPlayers.filter((p) => convocadas.includes(p.id))
+    : myPlayers;
+
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setTimers((prev) => {
+        const hasRunning = Object.values(prev).some((t) => t.running);
+        if (!hasRunning) return prev;
+        const next = {};
+        Object.keys(prev).forEach((k) => {
+          next[k] = prev[k].running ? { ...prev[k], seconds: prev[k].seconds + 1 } : prev[k];
+        });
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const toggleTimer = (playerId) => {
+    setTimers((prev) => ({
+      ...prev,
+      [playerId]: {
+        running: !(prev[playerId]?.running),
+        seconds: prev[playerId]?.seconds ?? 0,
+      },
+    }));
+  };
+
+  const toggleConvocada = (playerId) =>
+    setConvocadas((prev) =>
+      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]
     );
-  }
 
   return (
-    <Card className="p-5">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {players.map((player) => (
-          <div key={player.id} className={cn("rounded-3xl border p-4 text-center", player.starter ? "border-cyan-300 bg-cyan-50" : "border-slate-200 bg-white")}>
-            <div className="flex items-center justify-center gap-3">
-              <PlayerAvatar player={player} size="h-12 w-12" />
-              <div>
-                <p className="font-black text-slate-950">{player.name}</p>
-                <p className="text-sm text-slate-500">{player.pos}</p>
+    <div className="space-y-6">
+      {/* ── Barra superior de controles ── */}
+      <Card className="p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <button type="button" onClick={() => setShowConvocatoria(true)}
+            className="rounded-2xl border border-violet-300 bg-violet-50 px-5 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100">
+            📋 Convocatoria
+          </button>
+          <div className="flex h-10 items-center rounded-2xl border border-cyan-200 bg-cyan-50 px-4 text-sm font-black text-cyan-700">
+            {convocadas.length} jugadoras
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <SelectBox label="Rival" value={rival} onChange={setRival} options={rivalOptions} />
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Botón LIVE ── */}
+      <div className="flex justify-center py-4">
+        <button type="button" onClick={() => setShowLive(true)}
+          className="flex h-44 w-44 items-center justify-center rounded-full border-4 border-red-300/50 bg-gradient-to-br from-red-500 to-rose-700 shadow-2xl shadow-red-500/40 transition hover:scale-105 hover:shadow-red-500/60">
+          <div className="text-center">
+            <p className="text-5xl font-black tracking-wider text-white">LIVE</p>
+            <p className="mt-1 animate-pulse text-xs font-bold text-red-200">● EN DIRECTO</p>
+          </div>
+        </button>
+      </div>
+
+      {/* ── Análisis en directo por categoría ── */}
+      <Card className="p-5">
+        <SectionTitle title="Análisis en directo" subtitle="Registra observaciones por categoría. La IA analiza y genera pautas para la 2ª parte." />
+        <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
+          {DAFO_CATS.map((cat) => {
+            const notes = dafoCats[cat].notes;
+            return (
+              <div key={cat} className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-center text-sm font-black uppercase tracking-wide text-slate-800">{cat}</p>
+                {/* Globo 1: observaciones del entrenador */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-slate-400">✏️ Tus observaciones</p>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setDafoCats((prev) => ({ ...prev, [cat]: { notes: e.target.value } }))}
+                    rows={3} placeholder="Escribe aquí o usa el audio..."
+                    className="w-full resize-none rounded-xl border border-slate-100 p-2 text-sm text-slate-800 outline-none focus:border-violet-300"
+                  />
+                  <button type="button" className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100">
+                    🎙 Audio
+                  </button>
+                </div>
+                {/* Globo 2: análisis IA */}
+                <div className="rounded-2xl border border-violet-200 bg-violet-50 p-3">
+                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-violet-500">🤖 Análisis IA</p>
+                  <p className="text-sm leading-5 text-violet-900">{iaAnalysis(cat, notes)}</p>
+                </div>
+                {/* Globo 3: pautas para la 2ª parte */}
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-emerald-600">💡 Pautas 2ª parte</p>
+                  <p className="text-sm leading-5 text-emerald-900">{iaRecommendation(cat, notes)}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* ── Modal convocatoria ── */}
+      {showConvocatoria && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setShowConvocatoria(false)}>
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-[#061a3f] to-[#08285f] px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-black text-white">Convocadas</h2>
+                <span className="rounded-full bg-yellow-400 px-3 py-1 text-sm font-black text-slate-900">
+                  {convocadas.length} seleccionadas
+                </span>
               </div>
             </div>
-            <p className="mt-3 text-sm text-slate-600">Tiempo: {formatTime(player.seconds)}</p>
+            <div className="max-h-[60vh] space-y-2 overflow-y-auto p-4">
+              {myPlayers.map((p) => {
+                const sel = convocadas.includes(p.id);
+                return (
+                  <button key={p.id} type="button" onClick={() => toggleConvocada(p.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition",
+                      sel ? "border-cyan-400 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50"
+                    )}>
+                    <PlayerAvatar player={p} size="h-10 w-10" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-slate-900 truncate">{playerName(p)}</p>
+                      <p className="text-xs text-slate-500">#{p.dorsal} · {p.pos}</p>
+                    </div>
+                    {sel && <span className="text-lg text-cyan-500">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-100 p-4">
+              <button type="button" onClick={() => setConvocadas([])}
+                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
+                Limpiar
+              </button>
+              <button type="button" onClick={() => setShowConvocatoria(false)}
+                className="rounded-2xl bg-gradient-to-r from-[#061a3f] to-[#08285f] px-6 py-2.5 text-sm font-black text-white transition hover:from-blue-900 hover:to-blue-800">
+                OK
+              </button>
+            </div>
           </div>
-        ))}
-      </div>
-    </Card>
+        </div>
+      )}
+
+      {/* ── Modal LIVE de tiempos ── */}
+      {showLive && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => !locked && setShowLive(false)}>
+          <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}>
+            {/* Cabecera */}
+            <div className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl font-black text-white">⏱ Tiempos jugadoras</span>
+                  <span className="animate-pulse text-sm font-bold text-red-200">● LIVE</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setLocked((l) => !l)}
+                    title={locked ? "Desbloquear pantalla" : "Bloquear pantalla"}
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 text-lg transition",
+                      locked ? "bg-yellow-400 text-slate-900" : "bg-white/15 text-white hover:bg-white/25"
+                    )}>
+                    {locked ? "🔒" : "🔓"}
+                  </button>
+                  <button type="button" onClick={() => setShowLive(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+            {/* Notas por equipo */}
+            <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
+              {[
+                { label: `Mi equipo · ${MY_TEAM}`, value: notesMine, onChange: setNotesMine },
+                { label: `Rival · ${rival === "— Selecciona rival —" ? "—" : rival}`, value: notesRival, onChange: setNotesRival },
+              ].map(({ label, value, onChange }) => (
+                <div key={label} className="p-4">
+                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
+                  <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={2}
+                    placeholder="Notas rápidas..."
+                    className="w-full resize-none rounded-xl border border-slate-200 p-2 text-sm outline-none focus:border-slate-400" />
+                  <button type="button"
+                    className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100">
+                    🎙 Audio
+                  </button>
+                </div>
+              ))}
+            </div>
+            {/* Tiempos por jugadora */}
+            <div className="max-h-[45vh] space-y-2 overflow-y-auto p-4">
+              {convocadasPlayers.map((p) => {
+                const timer = timers[p.id] || { running: false, seconds: p.seconds || 0 };
+                return (
+                  <div key={p.id} className={cn(
+                    "flex items-center gap-3 rounded-2xl border p-3 transition",
+                    timer.running ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-white"
+                  )}>
+                    <PlayerAvatar player={p} size="h-10 w-10" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-slate-900 truncate">{p.name}</p>
+                      <p className="text-xs text-slate-500">{p.pos} · #{p.dorsal}</p>
+                    </div>
+                    <span className="tabular-nums font-black text-slate-700 text-sm">{formatTime(timer.seconds)}</span>
+                    <button type="button" onClick={() => toggleTimer(p.id)}
+                      className={cn(
+                        "w-20 rounded-xl py-1.5 text-xs font-black transition",
+                        timer.running ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
+                      )}>
+                      {timer.running ? "⏸ Pausa" : "▶ Play"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1385,7 +1616,7 @@ function RegistryPanel({ regTab, players, setPlayers, teams, setTeams }) {
                 <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">{endaniaPlayers.length} jugadoras</span>
               </div>
             </div>
-            <div className="divide-y divide-slate-50 max-h-96 overflow-y-auto">
+            <div className="divide-y divide-slate-50 max-h-[560px] overflow-y-auto">
               {endaniaPlayers.length ? endaniaPlayers.map((p) => (
                 <div key={p.id} className="flex items-center gap-3 px-5 py-3">
                   <PlayerAvatar player={p} size="h-10 w-10" />
@@ -1615,7 +1846,7 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
 }
 
 function TrainingSessionPanel({ onSaveTraining }) {
-  const [sessionDate, setSessionDate] = useState("2026-05-16");
+  const [sessionDate, setSessionDate] = useState(new Date().toISOString().slice(0, 10));
   const [saveMessage, setSaveMessage] = useState("");
   const [warmupRows, setWarmupRows] = useState([
     buildTask("Movilidad", 10, 10, 6, 6, 2),
@@ -1999,7 +2230,7 @@ export default function App() {
               )}
               {mainTab === "session" && sessionTab === "Analizar" && <SessionAnalysisPanel sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
               {mainTab === "session" && sessionTab === "Sesion de entreno" && <TrainingSessionPanel onSaveTraining={(t) => setTrainings((c) => [t, ...c])} />}
-              {mainTab === "live" && <LivePanel liveTab={liveTab} players={seasonPlayers} />}
+              {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} />}
               {mainTab === "registro" && <RegistryPanel regTab={regTab} players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} />}
               {mainTab === "bd" && <DatabasePanel teams={seasonTeams} players={seasonPlayers} matches={seasonMatches} trainings={seasonTrainings} dbTeam={dbTeam} setDbTeam={setDbTeam} dbScope={dbScope} setDbScope={setDbScope} dbStats={dbStats} dbView={dbView} setDbView={setDbView} />}
             </ErrorBoundary>
