@@ -1694,18 +1694,18 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
           </div>
           {selectedTeam ? (
             teamPlayers.length > 0
-              ? <div className="space-y-1.5">
+              ? <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
                   {teamPlayers.map((p) => (
-                    <div key={p.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2 shadow-sm transition hover:border-violet-200 hover:bg-violet-50/30">
-                      <PlayerAvatar player={p} size="h-9 w-9" />
-                      <span className="w-7 shrink-0 text-xs font-black text-slate-400">#{p.dorsal}</span>
-                      <span className="flex-1 truncate text-sm font-black text-slate-900">{p.name} <span className="font-normal text-slate-500">{p.surname}</span></span>
-                      <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{p.pos}</span>
-                      <span className="hidden text-[10px] text-slate-400 sm:block">{calculateAge(p.birthDate)}a</span>
+                    <div key={p.id} className="group relative flex flex-col items-center gap-1.5 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md">
                       <button type="button" onClick={() => openModal("editPlayer", p)}
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] text-slate-400 hover:border-violet-300 hover:bg-violet-50">
+                        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-[10px] opacity-0 transition group-hover:opacity-100 hover:border-violet-300 hover:bg-violet-50">
                         ✏️
                       </button>
+                      <PlayerAvatar player={p} size="h-14 w-14" />
+                      <p className="text-[10px] font-black text-slate-400">#{p.dorsal}</p>
+                      <p className="w-full truncate text-xs font-black leading-tight text-slate-900">{p.name}</p>
+                      <p className="w-full truncate text-[10px] text-slate-400">{p.surname}</p>
+                      <span className="rounded-lg bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-500">{p.pos}</span>
                     </div>
                   ))}
                 </div>
