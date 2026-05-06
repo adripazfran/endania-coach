@@ -2395,12 +2395,12 @@ export default function App() {
           userName={userName}
           userRole={userRole}
         />
-        <main onClick={() => setVisualFocusGroup("")} className="min-w-0 flex-1 bg-gradient-to-br from-slate-100 via-white to-violet-50/40 p-4 md:p-8">
+        <main onClick={() => setVisualFocusGroup("")} className="min-w-0 flex-1 bg-gradient-to-br from-violet-100 via-fuchsia-50 to-indigo-100 p-4 md:p-8">
           <div className="mx-auto max-w-7xl space-y-6">
             {mainTab === "registro" ? (
               <header className="rounded-[32px] border border-violet-200/60 bg-gradient-to-r from-violet-600 to-fuchsia-600 p-7 text-center shadow-lg">
                 <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">REGISTRO</h1>
-                <p className="mt-2 text-sm font-semibold text-white/75">Alta y edición de jugadores y equipos</p>
+                <p className="mt-2 text-sm font-semibold text-white">Alta y edición de jugadores y equipos</p>
               </header>
             ) : (
               <header className="rounded-[32px] border border-white/80 bg-white/90 p-6 text-center shadow-sm backdrop-blur">
