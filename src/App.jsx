@@ -1654,26 +1654,26 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
                     "relative overflow-hidden rounded-2xl border text-left transition hover:-translate-y-0.5",
                     isSelected ? "border-violet-400 shadow-lg ring-2 ring-violet-200" : "border-slate-200 bg-white shadow-sm hover:shadow-md"
                   )}>
-                  <div className={cn("px-3 py-2.5", isMine ? "bg-gradient-to-r from-amber-400 to-orange-500" : "bg-gradient-to-r from-slate-600 to-slate-800")}>
-                    <div className="flex items-center justify-between gap-1">
-                      <div className="flex min-w-0 items-center gap-2">
+                  <div className={cn("px-4 py-4", isMine ? "bg-gradient-to-r from-amber-400 to-orange-500" : "bg-gradient-to-r from-slate-600 to-slate-800")}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-3">
                         {team.logoUrl
-                          ? <img src={team.logoUrl} className="h-8 w-8 shrink-0 rounded-lg object-cover" alt={team.name} />
-                          : <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-[11px] font-black text-white">{team.logo || initials(team.name)}</div>
+                          ? <img src={team.logoUrl} className="h-11 w-11 shrink-0 rounded-xl object-cover" alt={team.name} />
+                          : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 text-sm font-black text-white">{team.logo || initials(team.name)}</div>
                         }
                         <div className="min-w-0">
-                          <p className="truncate text-[11px] font-black text-white">{isMine ? "★ " : ""}{team.name}</p>
-                          <p className="text-[10px] text-white/70">{team.category}</p>
+                          <p className="truncate text-sm font-black text-white">{isMine ? "★ " : ""}{team.name}</p>
+                          <p className="text-xs text-white/70">{team.category}</p>
                         </div>
                       </div>
                       <button type="button" onClick={(e) => { e.stopPropagation(); openModal("editTeam", team); }}
-                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white/15 text-[11px] hover:bg-white/30">
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white/15 text-xs hover:bg-white/30">
                         ✏️
                       </button>
                     </div>
                   </div>
-                  <div className="px-3 py-1.5 text-center">
-                    <span className="text-[11px] font-black text-slate-500">{count} jug.</span>
+                  <div className="px-3 py-2 text-center">
+                    <span className="text-xs font-black text-slate-500">{count} jug.</span>
                   </div>
                 </button>
               );
@@ -1701,7 +1701,7 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
           </div>
           {selectedTeam ? (
             teamPlayers.length > 0
-              ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              ? <div className="grid grid-cols-3 gap-3">
                   {teamPlayers.map((p) => (
                     <div key={p.id} className="relative flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                       <button type="button" onClick={() => openModal("editPlayer", p)}
