@@ -58,9 +58,7 @@ const NAV_GROUPS = [
     title: "PARTIDO LIVE", main: "live",
     titleBg: "bg-yellow-700 hover:bg-violet-700", itemBg: "bg-yellow-700/90 hover:bg-violet-700",
     activeBg: "from-yellow-500 to-amber-700", accent: "from-yellow-300 to-amber-500",
-    items: [
-      { label: "Directo", icon: "◉", main: "live", sub: "Directo" },
-    ],
+    items: [],
   },
 ];
 
@@ -551,6 +549,11 @@ function Sidebar({ mainTab, offlineTab, liveTab, regTab, dbView, sessionTab, goT
       (item.main === "session" && sessionTab === item.sub));
 
   const handleGroupClick = (group) => {
+    if (group.items.length === 0) {
+      goTo({ main: group.main, sub: "" });
+      setVisualFocusGroup(group.title);
+      return;
+    }
     setVisualFocusGroup((c) => c === group.title ? "" : group.title);
     setOpenGroups((c) => ({ ...c, [group.title]: !c[group.title] }));
   };
@@ -597,7 +600,7 @@ function Sidebar({ mainTab, offlineTab, liveTab, regTab, dbView, sessionTab, goT
                   "flex w-full items-center justify-between rounded-2xl border border-white/20 px-3 py-3 text-left transition",
                   isMuted
                     ? "bg-slate-700/60"
-                    : visualFocusGroup === group.title
+                    : (visualFocusGroup === group.title || (group.items.length === 0 && mainTab === group.main))
                     ? "bg-yellow-400/90 shadow-lg shadow-yellow-900/40"
                     : "bg-yellow-600/70 hover:bg-yellow-500/80"
                 )}>
@@ -608,7 +611,9 @@ function Sidebar({ mainTab, offlineTab, liveTab, regTab, dbView, sessionTab, goT
                   )} />
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-white">{group.title}</p>
                 </div>
-                <span className={cn("rounded-full border border-white/20 bg-white/15 px-2 py-1 text-xs font-black text-white transition", isOpen ? "rotate-180" : "")}>⌄</span>
+                {group.items.length > 0 && (
+                  <span className={cn("rounded-full border border-white/20 bg-white/15 px-2 py-1 text-xs font-black text-white transition", isOpen ? "rotate-180" : "")}>⌄</span>
+                )}
               </button>
               {isOpen && (
                 <div className="mt-3 space-y-1.5">
@@ -1163,30 +1168,31 @@ function iaRecommendation(cat, notes) {
   return map[cat] || "Generando recomendaciones para la segunda parte...";
 }
 
-function LivePanel({ players, teams }) {
+function LivePanel({ players, teams, setMatches }) {
   const [showConvocatoria, setShowConvocatoria] = useState(false);
   const [convocadas, setConvocadas] = useState([]);
   const [rival, setRival] = useState("— Selecciona rival —");
   const [showLive, setShowLive] = useState(false);
   const [locked, setLocked] = useState(false);
-  const [notesMine, setNotesMine] = useState("");
-  const [notesRival, setNotesRival] = useState("");
   const [timers, setTimers] = useState({});
-  const [dafoCats, setDafoCats] = useState(
-    Object.fromEntries(DAFO_CATS.map((cat) => [cat, { notes: "" }]))
-  );
+  // Notas borrador dentro del popup (por categoría + generales)
+  const [draftNotes, setDraftNotes] = useState(Object.fromEntries(DAFO_CATS.map((c) => [c, ""])));
+  const [draftMine, setDraftMine] = useState("");
+  const [draftRival, setDraftRival] = useState("");
+  // Notas enviadas al DAFO exterior (solo lectura fuera del popup)
+  const [sentNotes, setSentNotes] = useState(Object.fromEntries(DAFO_CATS.map((c) => [c, ""])));
+  const [savedTimes, setSavedTimes] = useState(null);
+  const [dbSent, setDbSent] = useState(false);
 
   const myPlayers = players.filter((p) => p.team === MY_TEAM);
   const rivalOptions = ["— Selecciona rival —", ...teams.filter((t) => t.name !== MY_TEAM).map((t) => t.name)];
-  const convocadasPlayers = convocadas.length > 0
-    ? myPlayers.filter((p) => convocadas.includes(p.id))
-    : myPlayers;
+  const convocadasPlayers = convocadas.length > 0 ? myPlayers.filter((p) => convocadas.includes(p.id)) : myPlayers;
+  const rivalLabel = rival === "— Selecciona rival —" ? "—" : rival;
 
   React.useEffect(() => {
     const id = setInterval(() => {
       setTimers((prev) => {
-        const hasRunning = Object.values(prev).some((t) => t.running);
-        if (!hasRunning) return prev;
+        if (!Object.values(prev).some((t) => t.running)) return prev;
         const next = {};
         Object.keys(prev).forEach((k) => {
           next[k] = prev[k].running ? { ...prev[k], seconds: prev[k].seconds + 1 } : prev[k];
@@ -1197,100 +1203,128 @@ function LivePanel({ players, teams }) {
     return () => clearInterval(id);
   }, []);
 
-  const toggleTimer = (playerId) => {
-    setTimers((prev) => ({
-      ...prev,
-      [playerId]: {
-        running: !(prev[playerId]?.running),
-        seconds: prev[playerId]?.seconds ?? 0,
-      },
-    }));
+  const toggleTimer = (id) =>
+    setTimers((prev) => ({ ...prev, [id]: { running: !prev[id]?.running, seconds: prev[id]?.seconds ?? 0 } }));
+
+  const toggleConvocada = (id) =>
+    setConvocadas((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+
+  const sendCategory = (cat) =>
+    setSentNotes((prev) => ({ ...prev, [cat]: draftNotes[cat] }));
+
+  const saveAndClose = () => {
+    setSentNotes({ ...draftNotes });
+    setSavedTimes({ ...timers });
+    setDbSent(false);
+    setShowLive(false);
   };
 
-  const toggleConvocada = (playerId) =>
-    setConvocadas((prev) =>
-      prev.includes(playerId) ? prev.filter((id) => id !== playerId) : [...prev, playerId]
-    );
+  const sendToDB = () => {
+    const rivalName = rival === "— Selecciona rival —" ? "Rival" : rival;
+    setMatches((prev) => [{
+      id: Date.now(),
+      date: new Date().toISOString().slice(0, 10),
+      type: "LIVE",
+      teams: [MY_TEAM, rivalName],
+      a: { shotsOn: 0, shotsOff: 0, shotsPost: 0, goals: 0, shotsTotal: 0, recoveries: 0, losses: 0, transLoss: 0, lossAfterRecovery: 0, yellow: 0, red: 0 },
+      b: { shotsOn: 0, shotsOff: 0, shotsPost: 0, goals: 0, shotsTotal: 0, recoveries: 0, losses: 0, transLoss: 0, lossAfterRecovery: 0, yellow: 0, red: 0 },
+    }, ...prev]);
+    setDbSent(true);
+  };
+
+  const hasData = Object.values(sentNotes).some((n) => n.trim().length > 0);
 
   return (
     <div className="space-y-6">
-      {/* ── Barra superior de controles ── */}
-      <Card className="p-4">
-        <div className="flex flex-wrap items-end gap-3">
+
+      {/* ── Barra superior compacta ── */}
+      <Card className="p-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setShowConvocatoria(true)}
-            className="rounded-2xl border border-violet-300 bg-violet-50 px-5 py-2.5 text-sm font-black text-violet-800 transition hover:bg-violet-100">
+            className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-black text-violet-800 transition hover:bg-violet-100">
             📋 Convocatoria
           </button>
-          <div className="flex h-10 items-center rounded-2xl border border-cyan-200 bg-cyan-50 px-4 text-sm font-black text-cyan-700">
-            {convocadas.length} jugadoras
-          </div>
-          <div className="flex-1 min-w-[200px]">
-            <SelectBox label="Rival" value={rival} onChange={setRival} options={rivalOptions} />
-          </div>
+          <span className="rounded-2xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-black text-cyan-700">
+            {convocadas.length} jug.
+          </span>
+          <select value={rival} onChange={(e) => setRival(e.target.value)}
+            className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-violet-300">
+            {rivalOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+          <button type="button" onClick={() => setShowLive(true)}
+            className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-red-500 to-rose-600 px-5 py-2 text-sm font-black text-white shadow-md shadow-red-400/40 transition hover:from-red-400 hover:to-rose-500 active:scale-95">
+            <span className="animate-pulse text-red-200">●</span> LIVE
+          </button>
         </div>
       </Card>
 
-      {/* ── Botón LIVE ── */}
-      <div className="flex justify-center py-4">
-        <button type="button" onClick={() => setShowLive(true)}
-          className="flex h-44 w-44 items-center justify-center rounded-full border-4 border-red-300/50 bg-gradient-to-br from-red-500 to-rose-700 shadow-2xl shadow-red-500/40 transition hover:scale-105 hover:shadow-red-500/60">
-          <div className="text-center">
-            <p className="text-5xl font-black tracking-wider text-white">LIVE</p>
-            <p className="mt-1 animate-pulse text-xs font-bold text-red-200">● EN DIRECTO</p>
-          </div>
-        </button>
+      {/* ── DAFO exterior — solo lectura ── */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        {DAFO_CATS.map((cat) => {
+          const notes = sentNotes[cat];
+          return (
+            <div key={cat} className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-center text-sm font-black uppercase tracking-wide text-slate-800">{cat}</p>
+              <div className="min-h-[72px] rounded-2xl border border-slate-200 bg-white p-3">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-slate-400">📝 Notas en directo</p>
+                {notes
+                  ? <p className="text-sm leading-5 text-slate-800">{notes}</p>
+                  : <p className="text-xs italic text-slate-400">Sin notas aún — envíalas desde el panel LIVE.</p>}
+              </div>
+              <div className="rounded-2xl border border-violet-200 bg-violet-50 p-3">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-violet-500">🤖 Análisis</p>
+                <p className="text-sm leading-5 text-violet-900">{iaAnalysis(cat, notes)}</p>
+              </div>
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-emerald-600">💡 Propuesta de Intervención</p>
+                <p className="text-sm leading-5 text-emerald-900">{iaRecommendation(cat, notes)}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── Análisis en directo por categoría ── */}
-      <Card className="p-5">
-        <SectionTitle title="Análisis en directo" subtitle="Registra observaciones por categoría. La IA analiza y genera pautas para la 2ª parte." />
-        <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
-          {DAFO_CATS.map((cat) => {
-            const notes = dafoCats[cat].notes;
-            return (
-              <div key={cat} className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-center text-sm font-black uppercase tracking-wide text-slate-800">{cat}</p>
-                {/* Globo 1: observaciones del entrenador */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-slate-400">✏️ Tus observaciones</p>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setDafoCats((prev) => ({ ...prev, [cat]: { notes: e.target.value } }))}
-                    rows={3} placeholder="Escribe aquí o usa el audio..."
-                    className="w-full resize-none rounded-xl border border-slate-100 p-2 text-sm text-slate-800 outline-none focus:border-violet-300"
-                  />
-                  <button type="button" className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100">
-                    🎙 Audio
-                  </button>
+      {/* ── Tiempos guardados ── */}
+      {savedTimes && (
+        <Card className="p-5">
+          <SectionTitle title="Tiempos del partido" subtitle="Minutos registrados en directo." />
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+            {convocadasPlayers.map((p) => {
+              const t = savedTimes[p.id] || { seconds: p.seconds || 0 };
+              return (
+                <div key={p.id} className="flex flex-col items-center gap-1 rounded-2xl border border-slate-100 bg-white p-3 text-center">
+                  <PlayerAvatar player={p} size="h-10 w-10" />
+                  <p className="text-xs font-black text-slate-900">{p.name}</p>
+                  <p className="text-base font-black text-slate-700">{formatTime(t.seconds)}</p>
                 </div>
-                {/* Globo 2: análisis IA */}
-                <div className="rounded-2xl border border-violet-200 bg-violet-50 p-3">
-                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-violet-500">🤖 Análisis IA</p>
-                  <p className="text-sm leading-5 text-violet-900">{iaAnalysis(cat, notes)}</p>
-                </div>
-                {/* Globo 3: pautas para la 2ª parte */}
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
-                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-emerald-600">💡 Pautas 2ª parte</p>
-                  <p className="text-sm leading-5 text-emerald-900">{iaRecommendation(cat, notes)}</p>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Enviar a BD ── */}
+      {hasData && (
+        <div className="flex justify-center">
+          {dbSent
+            ? <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-3 text-sm font-black text-emerald-700">✓ Partido guardado en la Base de Datos como LIVE</div>
+            : <button type="button" onClick={sendToDB}
+                className="rounded-2xl bg-gradient-to-r from-[#061a3f] to-[#08285f] px-8 py-3 text-sm font-black text-white shadow-lg transition hover:from-blue-900 hover:to-blue-800">
+                💾 Enviar a Base de Datos
+              </button>
+          }
         </div>
-      </Card>
+      )}
 
       {/* ── Modal convocatoria ── */}
       {showConvocatoria && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
           onClick={() => setShowConvocatoria(false)}>
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-[#061a3f] to-[#08285f] px-6 py-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-white">Convocadas</h2>
-                <span className="rounded-full bg-yellow-400 px-3 py-1 text-sm font-black text-slate-900">
-                  {convocadas.length} seleccionadas
-                </span>
+                <span className="rounded-full bg-yellow-400 px-3 py-1 text-sm font-black text-slate-900">{convocadas.length} seleccionadas</span>
               </div>
             </div>
             <div className="max-h-[60vh] space-y-2 overflow-y-auto p-4">
@@ -1298,10 +1332,8 @@ function LivePanel({ players, teams }) {
                 const sel = convocadas.includes(p.id);
                 return (
                   <button key={p.id} type="button" onClick={() => toggleConvocada(p.id)}
-                    className={cn(
-                      "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition",
-                      sel ? "border-cyan-400 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50"
-                    )}>
+                    className={cn("flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition",
+                      sel ? "border-cyan-400 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50")}>
                     <PlayerAvatar player={p} size="h-10 w-10" />
                     <div className="flex-1 min-w-0">
                       <p className="font-black text-slate-900 truncate">{playerName(p)}</p>
@@ -1314,91 +1346,114 @@ function LivePanel({ players, teams }) {
             </div>
             <div className="flex justify-end gap-3 border-t border-slate-100 p-4">
               <button type="button" onClick={() => setConvocadas([])}
-                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
-                Limpiar
-              </button>
+                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">Limpiar</button>
               <button type="button" onClick={() => setShowConvocatoria(false)}
-                className="rounded-2xl bg-gradient-to-r from-[#061a3f] to-[#08285f] px-6 py-2.5 text-sm font-black text-white transition hover:from-blue-900 hover:to-blue-800">
-                OK
-              </button>
+                className="rounded-2xl bg-gradient-to-r from-[#061a3f] to-[#08285f] px-6 py-2.5 text-sm font-black text-white">OK</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Modal LIVE de tiempos ── */}
+      {/* ── Popup LIVE — 90% pantalla ── */}
       {showLive && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-[5vh_5vw] backdrop-blur-sm"
           onClick={() => !locked && setShowLive(false)}>
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+          <div className="flex h-full w-full flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}>
+
             {/* Cabecera */}
-            <div className="bg-gradient-to-r from-red-600 to-rose-700 px-6 py-4">
+            <div className="shrink-0 bg-gradient-to-r from-red-600 to-rose-700 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-xl font-black text-white">⏱ Tiempos jugadoras</span>
-                  <span className="animate-pulse text-sm font-bold text-red-200">● LIVE</span>
+                  <span className="animate-pulse text-red-200 text-lg">●</span>
+                  <span className="text-lg font-black text-white">{MY_TEAM} vs {rivalLabel}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => setLocked((l) => !l)}
-                    title={locked ? "Desbloquear pantalla" : "Bloquear pantalla"}
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 text-lg transition",
-                      locked ? "bg-yellow-400 text-slate-900" : "bg-white/15 text-white hover:bg-white/25"
-                    )}>
+                    title={locked ? "Desbloquear" : "Bloquear pantalla"}
+                    className={cn("flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 text-lg transition",
+                      locked ? "bg-yellow-400 text-slate-900" : "bg-white/15 text-white hover:bg-white/25")}>
                     {locked ? "🔒" : "🔓"}
                   </button>
-                  <button type="button" onClick={() => setShowLive(false)}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">
-                    ✕
+                  <button type="button" onClick={saveAndClose}
+                    className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-black text-white transition hover:bg-emerald-400">
+                    💾 Guardar y enviar
                   </button>
+                  <button type="button" onClick={() => setShowLive(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
                 </div>
               </div>
             </div>
-            {/* Notas por equipo */}
-            <div className="grid grid-cols-2 divide-x divide-slate-100 border-b border-slate-100">
-              {[
-                { label: `Mi equipo · ${MY_TEAM}`, value: notesMine, onChange: setNotesMine },
-                { label: `Rival · ${rival === "— Selecciona rival —" ? "—" : rival}`, value: notesRival, onChange: setNotesRival },
-              ].map(({ label, value, onChange }) => (
-                <div key={label} className="p-4">
-                  <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
-                  <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={2}
-                    placeholder="Notas rápidas..."
-                    className="w-full resize-none rounded-xl border border-slate-200 p-2 text-sm outline-none focus:border-slate-400" />
-                  <button type="button"
-                    className="mt-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100">
-                    🎙 Audio
-                  </button>
+
+            {/* Cuerpo — dos columnas */}
+            <div className="flex min-h-0 flex-1 overflow-hidden">
+
+              {/* Columna izquierda: tiempos jugadoras */}
+              <div className="w-56 shrink-0 overflow-y-auto border-r border-slate-100 p-3">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-400">Jugadoras</p>
+                <div className="space-y-2">
+                  {convocadasPlayers.map((p) => {
+                    const timer = timers[p.id] || { running: false, seconds: p.seconds || 0 };
+                    return (
+                      <div key={p.id} className={cn("flex items-center gap-2 rounded-2xl border p-2 transition",
+                        timer.running ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-white")}>
+                        <PlayerAvatar player={p} size="h-8 w-8" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-black text-slate-900">{p.name}</p>
+                          <p className="text-[10px] text-slate-400">{p.pos}</p>
+                        </div>
+                        <span className="tabular-nums text-xs font-black text-slate-700">{formatTime(timer.seconds)}</span>
+                        <button type="button" onClick={() => toggleTimer(p.id)}
+                          className={cn("rounded-lg px-1.5 py-1 text-[10px] font-black transition",
+                            timer.running ? "bg-red-500 text-white" : "bg-emerald-500 text-white")}>
+                          {timer.running ? "⏸" : "▶"}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-            {/* Tiempos por jugadora */}
-            <div className="max-h-[45vh] space-y-2 overflow-y-auto p-4">
-              {convocadasPlayers.map((p) => {
-                const timer = timers[p.id] || { running: false, seconds: p.seconds || 0 };
-                return (
-                  <div key={p.id} className={cn(
-                    "flex items-center gap-3 rounded-2xl border p-3 transition",
-                    timer.running ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-white"
-                  )}>
-                    <PlayerAvatar player={p} size="h-10 w-10" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-slate-900 truncate">{p.name}</p>
-                      <p className="text-xs text-slate-500">{p.pos} · #{p.dorsal}</p>
+              </div>
+
+              {/* Columna derecha: notas */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Notas generales */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: `Mi equipo · ${MY_TEAM}`, value: draftMine, set: setDraftMine },
+                    { label: `Rival · ${rivalLabel}`, value: draftRival, set: setDraftRival },
+                  ].map(({ label, value, set }) => (
+                    <div key={label} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+                      <textarea value={value} onChange={(e) => set(e.target.value)} rows={2}
+                        placeholder="Notas generales..."
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-white p-2 text-sm outline-none focus:border-violet-300" />
+                      <button type="button" className="mt-1 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100">🎙 Audio</button>
                     </div>
-                    <span className="tabular-nums font-black text-slate-700 text-sm">{formatTime(timer.seconds)}</span>
-                    <button type="button" onClick={() => toggleTimer(p.id)}
-                      className={cn(
-                        "w-20 rounded-xl py-1.5 text-xs font-black transition",
-                        timer.running ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
-                      )}>
-                      {timer.running ? "⏸ Pausa" : "▶ Play"}
-                    </button>
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+
+                {/* Notas por categoría */}
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                  {DAFO_CATS.map((cat) => (
+                    <div key={cat} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-700">{cat}</p>
+                      <textarea
+                        value={draftNotes[cat]}
+                        onChange={(e) => setDraftNotes((prev) => ({ ...prev, [cat]: e.target.value }))}
+                        rows={3} placeholder={`Observaciones de ${cat.toLowerCase()}...`}
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-white p-2 text-sm outline-none focus:border-violet-300"
+                      />
+                      <div className="mt-2 flex gap-2">
+                        <button type="button" className="rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100">🎙 Audio</button>
+                        <button type="button" onClick={() => sendCategory(cat)}
+                          className="rounded-xl bg-violet-500 px-3 py-1 text-xs font-black text-white transition hover:bg-violet-400">
+                          Enviar ↑
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1616,18 +1671,19 @@ function RegistryPanel({ regTab, players, setPlayers, teams, setTeams }) {
                 <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">{endaniaPlayers.length} jugadoras</span>
               </div>
             </div>
-            <div className="divide-y divide-slate-50 max-h-[560px] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-3">
               {endaniaPlayers.length ? endaniaPlayers.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 px-5 py-3">
-                  <PlayerAvatar player={p} size="h-10 w-10" />
-                  <span className="w-8 text-center text-xs font-black text-slate-500">#{p.dorsal}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-slate-900 truncate">{playerName(p)}</p>
-                    <p className="text-xs text-slate-400">{p.pos} · {calculateAge(p.birthDate)} años</p>
+                <div key={p.id} className="flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm">
+                  <PlayerAvatar player={p} size="h-12 w-12" />
+                  <div>
+                    <p className="text-xs font-black text-slate-400">#{p.dorsal}</p>
+                    <p className="font-black text-slate-900 text-sm leading-tight">{p.name}</p>
+                    <p className="text-xs text-slate-500">{p.surname}</p>
+                    <p className="mt-1 text-xs text-slate-400">{p.pos} · {calculateAge(p.birthDate)} años</p>
+                    {p.starter && <span className="mt-1 inline-block rounded-lg bg-cyan-100 px-2 py-0.5 text-[10px] font-black text-cyan-700">Titular</span>}
                   </div>
-                  {p.starter && <span className="rounded-lg bg-cyan-100 px-2 py-0.5 text-[10px] font-black text-cyan-700">Titular</span>}
                 </div>
-              )) : <p className="px-5 py-4 text-sm text-slate-400">Sin jugadoras registradas.</p>}
+              )) : <p className="col-span-full py-4 text-sm text-slate-400">Sin jugadoras registradas.</p>}
             </div>
           </div>
         </div>
@@ -2230,7 +2286,7 @@ export default function App() {
               )}
               {mainTab === "session" && sessionTab === "Analizar" && <SessionAnalysisPanel sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
               {mainTab === "session" && sessionTab === "Sesion de entreno" && <TrainingSessionPanel onSaveTraining={(t) => setTrainings((c) => [t, ...c])} />}
-              {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} />}
+              {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} setMatches={setMatches} />}
               {mainTab === "registro" && <RegistryPanel regTab={regTab} players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} />}
               {mainTab === "bd" && <DatabasePanel teams={seasonTeams} players={seasonPlayers} matches={seasonMatches} trainings={seasonTrainings} dbTeam={dbTeam} setDbTeam={setDbTeam} dbScope={dbScope} setDbScope={setDbScope} dbStats={dbStats} dbView={dbView} setDbView={setDbView} />}
             </ErrorBoundary>
