@@ -1627,7 +1627,7 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
   const isEditing = modal === "editTeam" || modal === "editPlayer";
   const setF = (field, val) => setFormData((prev) => ({ ...prev, [field]: val }));
 
-  const exportPlayers = () => {
+  const exportCSV = () => {
     if (!selectedTeam) return;
     const rows = [
       ["Dorsal", "Nombre", "Apellidos", "Posición", "Fecha nac.", "Edad"],
@@ -1641,11 +1641,37 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
     a.click();
   };
 
+  const exportPDF = () => {
+    if (!selectedTeam) return;
+    const rows = teamPlayers.map((p) =>
+      `<tr><td>${p.dorsal}</td><td>${p.name}</td><td>${p.surname}</td><td>${p.pos}</td><td>${p.birthDate}</td><td>${calculateAge(p.birthDate)} años</td></tr>`
+    ).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${selectedTeam.name} – Plantilla</title>
+    <style>
+      body{font-family:Arial,sans-serif;padding:32px;color:#0f172a}
+      h1{font-size:22px;margin:0 0 4px}
+      p{font-size:13px;color:#64748b;margin:0 0 20px}
+      table{width:100%;border-collapse:collapse;font-size:13px}
+      th{background:#1e293b;color:#fff;padding:9px 12px;text-align:left;font-weight:700}
+      td{padding:8px 12px;border-bottom:1px solid #e2e8f0}
+      tr:nth-child(even) td{background:#f8fafc}
+    </style></head><body>
+    <h1>${selectedTeam.name}</h1>
+    <p>${selectedTeam.category} · ${teamPlayers.length} jugadoras registradas</p>
+    <table><thead><tr><th>#</th><th>Nombre</th><th>Apellidos</th><th>Posición</th><th>Fecha nac.</th><th>Edad</th></tr></thead>
+    <tbody>${rows}</tbody></table></body></html>`;
+    const win = window.open("", "_blank");
+    win.document.write(html);
+    win.document.close();
+    win.print();
+  };
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[460px_1fr]">
+      {/* Layout: equipos 2 cols (9 filas para 18) | jugadoras 4 cols (5 filas para 20) */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[480px_1fr]">
 
-        {/* Columna izquierda: equipos — 2 cols para caber 16 en mismo alto que jugadoras */}
+        {/* ── Equipos ── */}
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <div>
@@ -1668,17 +1694,19 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
                     "group w-full overflow-hidden rounded-2xl border text-left transition hover:-translate-y-0.5",
                     isSelected ? "border-violet-400 shadow-lg ring-2 ring-violet-200" : "border-slate-200 bg-white shadow-sm hover:shadow-md"
                   )}>
-                  <div className={cn("flex items-center gap-3 px-3 py-3", isMine ? "bg-gradient-to-r from-amber-400 to-orange-500" : "bg-gradient-to-r from-slate-700 to-slate-900")}>
+                  <div className="flex items-center gap-3 bg-gradient-to-r from-slate-700 to-slate-900 px-3 py-3">
                     {team.logoUrl
                       ? <img src={team.logoUrl} className="h-11 w-11 shrink-0 rounded-xl object-cover" alt={team.name} />
-                      : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20 text-sm font-black text-white">{team.logo || initials(team.name)}</div>
+                      : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sm font-black text-white">{team.logo || initials(team.name)}</div>
                     }
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-black leading-tight text-white">{isMine ? "★ " : ""}{team.name}</p>
-                      <p className="mt-0.5 text-[11px] text-white/65">{team.category} · {count} jug.</p>
+                      <p className="text-sm font-black leading-tight text-white">
+                        {isMine && <span className="mr-1 text-amber-300">★</span>}{team.name}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-white/60">{team.category} · {count} jug.</p>
                     </div>
                     <button type="button" onClick={(e) => { e.stopPropagation(); openModal("editTeam", team); }}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white/10 text-xs opacity-0 transition group-hover:opacity-100 hover:bg-white/30">
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/25 bg-white/10 text-xs opacity-0 transition group-hover:opacity-100 hover:bg-white/25">
                       ✏️
                     </button>
                   </div>
@@ -1688,7 +1716,7 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
           </div>
         </div>
 
-        {/* Columna derecha: jugadoras — 4 cols para caber 16 en 4 filas */}
+        {/* ── Jugadoras ── */}
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <div>
@@ -1701,10 +1729,16 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
             </div>
             <div className="flex items-center gap-2">
               {selectedTeam && (
-                <button type="button" onClick={exportPlayers}
-                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">
-                  ↓ Exportar
-                </button>
+                <>
+                  <button type="button" onClick={exportCSV}
+                    className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">
+                    ↓ CSV
+                  </button>
+                  <button type="button" onClick={exportPDF}
+                    className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700">
+                    ↓ PDF
+                  </button>
+                </>
               )}
               {selectedTeam && (
                 <button type="button" onClick={() => openModal("newPlayer")}
@@ -1716,19 +1750,19 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
           </div>
           {selectedTeam ? (
             teamPlayers.length > 0
-              ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              ? <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
                   {teamPlayers.map((p) => (
-                    <div key={p.id} className="group relative flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md">
+                    <div key={p.id} className="group relative flex flex-col items-center gap-1.5 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md">
                       <button type="button" onClick={() => openModal("editPlayer", p)}
-                        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-[10px] opacity-0 transition group-hover:opacity-100 hover:border-violet-300 hover:bg-violet-50">
+                        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-[10px] opacity-0 transition group-hover:opacity-100 hover:border-violet-300 hover:bg-violet-50">
                         ✏️
                       </button>
-                      <PlayerAvatar player={p} size="h-16 w-16" />
+                      <PlayerAvatar player={p} size="h-14 w-14" />
                       <div className="w-full">
-                        <p className="text-[11px] font-black text-slate-400">#{p.dorsal}</p>
-                        <p className="w-full truncate text-sm font-black leading-tight text-slate-900">{p.name}</p>
-                        <p className="w-full truncate text-xs text-slate-500">{p.surname}</p>
-                        <span className="mt-1.5 inline-block rounded-lg bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-500">{p.pos}</span>
+                        <p className="text-[10px] font-black text-slate-400">#{p.dorsal}</p>
+                        <p className="w-full truncate text-xs font-black leading-tight text-slate-900">{p.name}</p>
+                        <p className="w-full truncate text-[10px] text-slate-500">{p.surname}</p>
+                        <span className="mt-1 inline-block rounded-lg bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{p.pos}</span>
                       </div>
                     </div>
                   ))}
