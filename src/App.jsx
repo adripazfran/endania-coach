@@ -1643,23 +1643,29 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
 
   const exportPDF = () => {
     if (!selectedTeam) return;
-    const rows = teamPlayers.map((p) =>
-      `<tr><td>${p.dorsal}</td><td>${p.name}</td><td>${p.surname}</td><td>${p.pos}</td><td>${p.birthDate}</td><td>${calculateAge(p.birthDate)} años</td></tr>`
-    ).join("");
+    const cards = teamPlayers.map((p) => `
+      <div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px 10px;text-align:center;background:#fff;break-inside:avoid">
+        <div style="width:52px;height:52px;border-radius:12px;background:#0f172a;color:#fff;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:15px;letter-spacing:0.5px">${p.photo || (p.name[0] + (p.surname[0] || ""))}</div>
+        <div style="font-size:11px;color:#94a3b8;font-weight:700">#${p.dorsal}</div>
+        <div style="font-size:13px;font-weight:900;color:#0f172a;margin:2px 0">${p.name}</div>
+        <div style="font-size:11px;color:#475569;margin-bottom:6px">${p.surname}</div>
+        <div style="display:inline-block;background:#f1f5f9;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;color:#334155;margin-bottom:6px">${p.pos}</div>
+        <div style="font-size:10px;color:#94a3b8">${p.birthDate}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700">${calculateAge(p.birthDate)} años</div>
+      </div>`).join("");
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${selectedTeam.name} – Plantilla</title>
     <style>
-      body{font-family:Arial,sans-serif;padding:32px;color:#0f172a}
-      h1{font-size:22px;margin:0 0 4px}
-      p{font-size:13px;color:#64748b;margin:0 0 20px}
-      table{width:100%;border-collapse:collapse;font-size:13px}
-      th{background:#1e293b;color:#fff;padding:9px 12px;text-align:left;font-weight:700}
-      td{padding:8px 12px;border-bottom:1px solid #e2e8f0}
-      tr:nth-child(even) td{background:#f8fafc}
+      *{box-sizing:border-box}
+      body{font-family:Arial,sans-serif;padding:28px;color:#0f172a;margin:0}
+      h1{font-size:22px;margin:0 0 3px}
+      .sub{font-size:13px;color:#64748b;margin:0 0 20px}
+      .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+      @media print{body{padding:16px}.grid{grid-template-columns:repeat(5,1fr)}}
     </style></head><body>
     <h1>${selectedTeam.name}</h1>
-    <p>${selectedTeam.category} · ${teamPlayers.length} jugadoras registradas</p>
-    <table><thead><tr><th>#</th><th>Nombre</th><th>Apellidos</th><th>Posición</th><th>Fecha nac.</th><th>Edad</th></tr></thead>
-    <tbody>${rows}</tbody></table></body></html>`;
+    <p class="sub">${selectedTeam.category} · ${teamPlayers.length} jugadoras registradas</p>
+    <div class="grid">${cards}</div>
+    </body></html>`;
     const win = window.open("", "_blank");
     win.document.write(html);
     win.document.close();
@@ -1697,7 +1703,7 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
                   <div className="flex items-center gap-3 bg-gradient-to-r from-slate-700 to-slate-900 px-3 py-3">
                     {team.logoUrl
                       ? <img src={team.logoUrl} className="h-11 w-11 shrink-0 rounded-xl object-cover" alt={team.name} />
-                      : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sm font-black text-white">{team.logo || initials(team.name)}</div>
+                      : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white">{team.logo || initials(team.name)}</div>
                     }
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-black leading-tight text-white">
@@ -1763,6 +1769,8 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
                         <p className="w-full truncate text-xs font-black leading-tight text-slate-900">{p.name}</p>
                         <p className="w-full truncate text-[10px] text-slate-500">{p.surname}</p>
                         <span className="mt-1 inline-block rounded-lg bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{p.pos}</span>
+                        <p className="mt-0.5 text-[10px] text-slate-400">{p.birthDate}</p>
+                        <p className="text-[10px] font-bold text-slate-500">{calculateAge(p.birthDate)} años</p>
                       </div>
                     </div>
                   ))}
