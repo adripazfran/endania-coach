@@ -18,10 +18,7 @@ const NAV_GROUPS = [
     title: "REGISTRO", main: "registro",
     titleBg: "bg-lime-700 hover:bg-fuchsia-600", itemBg: "bg-lime-700/90 hover:bg-fuchsia-600",
     activeBg: "from-lime-500 to-emerald-700", accent: "from-lime-300 to-emerald-500",
-    items: [
-      { label: "Alta", icon: "+", main: "registro", sub: "Alta" },
-      { label: "Editar", icon: "✎", main: "registro", sub: "Editar" },
-    ],
+    items: [],
   },
   {
     title: "BASE DE DATOS", main: "bd",
@@ -97,6 +94,90 @@ const BASE_PLAYERS = [
   { id: 14, team: MY_TEAM, dorsal: 23, name: "Alba", surname: "Rial Gomez", pos: "Universal", birthDate: "2000-04-05", photo: "AG", starter: false, seconds: 360 },
   { id: 15, team: "Poio Pescamar", dorsal: 3, name: "Carmen", surname: "Lago Vila", pos: "Cierre", birthDate: "1998-07-14", photo: "CL", starter: true, seconds: 900 },
   { id: 16, team: "Marin FS", dorsal: 9, name: "Uxia", surname: "Paz Santos", pos: "Pivot", birthDate: "2001-05-11", photo: "UP", starter: true, seconds: 820 },
+  // Poio Pescamar
+  { id: 17, team: "Poio Pescamar", dorsal: 1, name: "Sofia", surname: "Ramos Castro", pos: "Portera", birthDate: "1997-03-14", photo: "SR", starter: true, seconds: 1100 },
+  { id: 18, team: "Poio Pescamar", dorsal: 7, name: "Marta", surname: "Vidal Torres", pos: "Ala", birthDate: "2001-04-18", photo: "MV", starter: true, seconds: 820 },
+  { id: 19, team: "Poio Pescamar", dorsal: 9, name: "Lucia", surname: "Fernandez Rios", pos: "Pivot", birthDate: "1999-11-02", photo: "LF", starter: true, seconds: 790 },
+  { id: 20, team: "Poio Pescamar", dorsal: 12, name: "Ana", surname: "Gonzalez Paz", pos: "Cierre", birthDate: "2002-07-25", photo: "AG", starter: false, seconds: 540 },
+  { id: 21, team: "Poio Pescamar", dorsal: 14, name: "Nadia", surname: "Perez Iglesias", pos: "Ala", birthDate: "2003-01-09", photo: "NP", starter: false, seconds: 480 },
+  // Marin FS
+  { id: 22, team: "Marin FS", dorsal: 1, name: "Carmen", surname: "Iglesias Rey", pos: "Portera", birthDate: "1998-12-05", photo: "CI", starter: true, seconds: 1050 },
+  { id: 23, team: "Marin FS", dorsal: 4, name: "Elena", surname: "Costa Neira", pos: "Cierre", birthDate: "2000-09-08", photo: "EC", starter: true, seconds: 880 },
+  { id: 24, team: "Marin FS", dorsal: 7, name: "Raquel", surname: "Lopez Suarez", pos: "Ala", birthDate: "2003-02-19", photo: "RL", starter: true, seconds: 810 },
+  { id: 25, team: "Marin FS", dorsal: 11, name: "Paula", surname: "Mendez Vila", pos: "Pivot", birthDate: "2001-06-30", photo: "PM", starter: false, seconds: 600 },
+  { id: 26, team: "Marin FS", dorsal: 13, name: "Iria", surname: "Souto Lemos", pos: "Ala", birthDate: "2004-08-22", photo: "IS", starter: false, seconds: 460 },
+  // Burela FS
+  { id: 27, team: "Burela FS", dorsal: 1, name: "Laura", surname: "Castro Silva", pos: "Portera", birthDate: "1999-04-22", photo: "LC", starter: true, seconds: 1100 },
+  { id: 28, team: "Burela FS", dorsal: 4, name: "Noa", surname: "Blanco Perez", pos: "Cierre", birthDate: "2002-08-17", photo: "NB", starter: true, seconds: 940 },
+  { id: 29, team: "Burela FS", dorsal: 8, name: "Iris", surname: "Santos Mora", pos: "Ala", birthDate: "2001-01-09", photo: "IS", starter: true, seconds: 870 },
+  { id: 30, team: "Burela FS", dorsal: 10, name: "Alba", surname: "Varela Fuentes", pos: "Pivot", birthDate: "2000-05-28", photo: "AV", starter: true, seconds: 830 },
+  { id: 31, team: "Burela FS", dorsal: 15, name: "Maria", surname: "Pena Docampo", pos: "Ala", birthDate: "2003-10-11", photo: "MP", starter: false, seconds: 650 },
+  // Ourense FS
+  { id: 32, team: "Ourense FS", dorsal: 1, name: "Carla", surname: "Novoa Doval", pos: "Portera", birthDate: "2000-02-14", photo: "CN", starter: true, seconds: 980 },
+  { id: 33, team: "Ourense FS", dorsal: 5, name: "Diana", surname: "Quiroga Lamas", pos: "Cierre", birthDate: "2003-07-03", photo: "DQ", starter: true, seconds: 910 },
+  { id: 34, team: "Ourense FS", dorsal: 9, name: "Vera", surname: "Alonso Trillo", pos: "Ala", birthDate: "2002-11-26", photo: "VA", starter: true, seconds: 860 },
+  { id: 35, team: "Ourense FS", dorsal: 11, name: "Ines", surname: "Otero Carballo", pos: "Pivot", birthDate: "2001-04-07", photo: "IO", starter: true, seconds: 820 },
+  { id: 36, team: "Ourense FS", dorsal: 14, name: "Aitana", surname: "Vega Cortizo", pos: "Ala", birthDate: "2004-09-19", photo: "AV", starter: false, seconds: 580 },
+  // Futsi Navalcarnero
+  { id: 37, team: "Futsi Navalcarnero", dorsal: 1, name: "Sandra", surname: "Ruiz Navarro", pos: "Portera", birthDate: "1998-06-11", photo: "SR", starter: true, seconds: 1080 },
+  { id: 38, team: "Futsi Navalcarnero", dorsal: 4, name: "Belen", surname: "Torres Pardo", pos: "Cierre", birthDate: "2001-03-24", photo: "BT", starter: true, seconds: 920 },
+  { id: 39, team: "Futsi Navalcarnero", dorsal: 8, name: "Julia", surname: "Molina Serrano", pos: "Ala", birthDate: "2002-08-16", photo: "JM", starter: true, seconds: 870 },
+  { id: 40, team: "Futsi Navalcarnero", dorsal: 10, name: "Eva", surname: "Campos Lozano", pos: "Pivot", birthDate: "2000-12-30", photo: "EC", starter: true, seconds: 840 },
+  { id: 41, team: "Futsi Navalcarnero", dorsal: 13, name: "Rosa", surname: "Herrera Castillo", pos: "Ala", birthDate: "2003-05-07", photo: "RH", starter: false, seconds: 610 },
+  // Sala Zaragoza
+  { id: 42, team: "Sala Zaragoza", dorsal: 1, name: "Laia", surname: "Marin Gracia", pos: "Portera", birthDate: "1999-01-28", photo: "LM", starter: true, seconds: 1060 },
+  { id: 43, team: "Sala Zaragoza", dorsal: 6, name: "Adriana", surname: "Gil Sanchez", pos: "Cierre", birthDate: "2002-06-14", photo: "AG", starter: true, seconds: 900 },
+  { id: 44, team: "Sala Zaragoza", dorsal: 9, name: "Miriam", surname: "Jimenez Vera", pos: "Ala", birthDate: "2001-10-05", photo: "MJ", starter: true, seconds: 850 },
+  { id: 45, team: "Sala Zaragoza", dorsal: 11, name: "Noelia", surname: "Pascual Abad", pos: "Pivot", birthDate: "2000-03-17", photo: "NP", starter: true, seconds: 800 },
+  { id: 46, team: "Sala Zaragoza", dorsal: 14, name: "Celia", surname: "Rubio Aragon", pos: "Ala", birthDate: "2003-08-22", photo: "CR", starter: false, seconds: 590 },
+  // Majadahonda FS
+  { id: 47, team: "Majadahonda FS", dorsal: 1, name: "Patricia", surname: "Reyes Vega", pos: "Portera", birthDate: "1997-11-03", photo: "PR", starter: true, seconds: 1090 },
+  { id: 48, team: "Majadahonda FS", dorsal: 5, name: "Natalia", surname: "Fuentes Heras", pos: "Cierre", birthDate: "2001-07-20", photo: "NF", starter: true, seconds: 930 },
+  { id: 49, team: "Majadahonda FS", dorsal: 8, name: "Rocio", surname: "Blanco Izquierdo", pos: "Ala", birthDate: "2002-02-09", photo: "RB", starter: true, seconds: 880 },
+  { id: 50, team: "Majadahonda FS", dorsal: 10, name: "Andrea", surname: "Prieto Moral", pos: "Pivot", birthDate: "2000-09-25", photo: "AP", starter: true, seconds: 820 },
+  { id: 51, team: "Majadahonda FS", dorsal: 12, name: "Tamara", surname: "Cano Bravo", pos: "Ala", birthDate: "2003-04-13", photo: "TC", starter: false, seconds: 620 },
+  // Gran Canaria Claret
+  { id: 52, team: "Gran Canaria Claret", dorsal: 1, name: "Yasmin", surname: "Diaz Herrera", pos: "Portera", birthDate: "1999-08-17", photo: "YD", starter: true, seconds: 1020 },
+  { id: 53, team: "Gran Canaria Claret", dorsal: 6, name: "Lidia", surname: "Suarez Mendoza", pos: "Cierre", birthDate: "2002-01-29", photo: "LS", starter: true, seconds: 890 },
+  { id: 54, team: "Gran Canaria Claret", dorsal: 9, name: "Vanesa", surname: "Santana Cruz", pos: "Ala", birthDate: "2001-05-14", photo: "VS", starter: true, seconds: 840 },
+  { id: 55, team: "Gran Canaria Claret", dorsal: 11, name: "Silvia", surname: "Marrero Cabrera", pos: "Pivot", birthDate: "2000-11-06", photo: "SM", starter: true, seconds: 790 },
+  { id: 56, team: "Gran Canaria Claret", dorsal: 15, name: "Alejandra", surname: "Vega Rosales", pos: "Ala", birthDate: "2004-03-21", photo: "AR", starter: false, seconds: 560 },
+  // Penya Esplugues
+  { id: 57, team: "Penya Esplugues", dorsal: 1, name: "Montse", surname: "Puig Salvat", pos: "Portera", birthDate: "1998-10-08", photo: "MP", starter: true, seconds: 1040 },
+  { id: 58, team: "Penya Esplugues", dorsal: 4, name: "Gemma", surname: "Valls Serra", pos: "Cierre", birthDate: "2001-06-23", photo: "GV", starter: true, seconds: 910 },
+  { id: 59, team: "Penya Esplugues", dorsal: 8, name: "Nuria", surname: "Catala Bosch", pos: "Ala", birthDate: "2002-12-10", photo: "NC", starter: true, seconds: 860 },
+  { id: 60, team: "Penya Esplugues", dorsal: 10, name: "Ariadna", surname: "Font Mas", pos: "Pivot", birthDate: "2000-04-02", photo: "AF", starter: true, seconds: 810 },
+  { id: 61, team: "Penya Esplugues", dorsal: 13, name: "Mar", surname: "Soler Roca", pos: "Ala", birthDate: "2003-09-15", photo: "MS", starter: false, seconds: 600 },
+  // AEM Lleida
+  { id: 62, team: "AEM Lleida", dorsal: 1, name: "Cristina", surname: "Pons Viladot", pos: "Portera", birthDate: "1999-02-27", photo: "CP", starter: true, seconds: 1000 },
+  { id: 63, team: "AEM Lleida", dorsal: 5, name: "Georgina", surname: "Sala Farres", pos: "Cierre", birthDate: "2002-07-18", photo: "GS", starter: true, seconds: 880 },
+  { id: 64, team: "AEM Lleida", dorsal: 9, name: "Mireia", surname: "Coma Tarrago", pos: "Ala", birthDate: "2001-11-04", photo: "MC", starter: true, seconds: 830 },
+  { id: 65, team: "AEM Lleida", dorsal: 11, name: "Alicia", surname: "Rius Garriga", pos: "Pivot", birthDate: "2000-05-16", photo: "AR", starter: true, seconds: 780 },
+  { id: 66, team: "AEM Lleida", dorsal: 14, name: "Merce", surname: "Balague Torres", pos: "Ala", birthDate: "2003-10-29", photo: "MB", starter: false, seconds: 570 },
+  // Granada FS
+  { id: 67, team: "Granada FS", dorsal: 1, name: "Inma", surname: "Medina Ruiz", pos: "Portera", birthDate: "1998-04-12", photo: "IM", starter: true, seconds: 1050 },
+  { id: 68, team: "Granada FS", dorsal: 6, name: "Lola", surname: "Moreno Vega", pos: "Cierre", birthDate: "2001-09-03", photo: "LM", starter: true, seconds: 920 },
+  { id: 69, team: "Granada FS", dorsal: 8, name: "Carmen", surname: "Fernandez Haro", pos: "Ala", birthDate: "2002-01-21", photo: "CF", starter: true, seconds: 870 },
+  { id: 70, team: "Granada FS", dorsal: 10, name: "Pilar", surname: "Jimenez Lara", pos: "Pivot", birthDate: "2000-06-08", photo: "PJ", starter: true, seconds: 820 },
+  { id: 71, team: "Granada FS", dorsal: 14, name: "Marina", surname: "Castillo Torres", pos: "Ala", birthDate: "2003-12-14", photo: "MC", starter: false, seconds: 600 },
+  // Roldán FS
+  { id: 72, team: "Roldán FS", dorsal: 1, name: "Amparo", surname: "Garcia Romero", pos: "Portera", birthDate: "1997-07-30", photo: "AG", starter: true, seconds: 1080 },
+  { id: 73, team: "Roldán FS", dorsal: 5, name: "Consuelo", surname: "Sanchez Marin", pos: "Cierre", birthDate: "2001-02-16", photo: "CS", starter: true, seconds: 940 },
+  { id: 74, team: "Roldán FS", dorsal: 8, name: "Raquel", surname: "Lopez Gimenez", pos: "Ala", birthDate: "2002-08-07", photo: "RL", starter: true, seconds: 890 },
+  { id: 75, team: "Roldán FS", dorsal: 10, name: "Dolores", surname: "Martinez Valera", pos: "Pivot", birthDate: "2000-11-22", photo: "DM", starter: true, seconds: 840 },
+  { id: 76, team: "Roldán FS", dorsal: 13, name: "Esther", surname: "Navarro Ruiz", pos: "Ala", birthDate: "2004-04-18", photo: "EN", starter: false, seconds: 610 },
+  // Tenerife CajaSiete
+  { id: 77, team: "Tenerife CajaSiete", dorsal: 1, name: "Yolanda", surname: "Hernandez Perez", pos: "Portera", birthDate: "1998-09-14", photo: "YH", starter: true, seconds: 1060 },
+  { id: 78, team: "Tenerife CajaSiete", dorsal: 6, name: "Natalia", surname: "Cabrera Gonzalez", pos: "Cierre", birthDate: "2001-04-28", photo: "NC", starter: true, seconds: 910 },
+  { id: 79, team: "Tenerife CajaSiete", dorsal: 9, name: "Rebeca", surname: "Torres Reyes", pos: "Ala", birthDate: "2002-10-16", photo: "RT", starter: true, seconds: 860 },
+  { id: 80, team: "Tenerife CajaSiete", dorsal: 11, name: "Veronica", surname: "Suarez Diaz", pos: "Pivot", birthDate: "2000-07-03", photo: "VS", starter: true, seconds: 810 },
+  { id: 81, team: "Tenerife CajaSiete", dorsal: 14, name: "Naira", surname: "Vega Artiles", pos: "Ala", birthDate: "2003-02-25", photo: "NV", starter: false, seconds: 580 },
+  // Futbol Emotion Zaragoza
+  { id: 82, team: "Futbol Emotion Zaragoza", dorsal: 1, name: "Lorena", surname: "Marco Lahoz", pos: "Portera", birthDate: "1999-05-19", photo: "LM", starter: true, seconds: 1040 },
+  { id: 83, team: "Futbol Emotion Zaragoza", dorsal: 5, name: "Susana", surname: "Gil Benedet", pos: "Cierre", birthDate: "2001-11-08", photo: "SG", starter: true, seconds: 900 },
+  { id: 84, team: "Futbol Emotion Zaragoza", dorsal: 8, name: "Rebeca", surname: "Sanchez Alvarez", pos: "Ala", birthDate: "2002-03-27", photo: "RS", starter: true, seconds: 850 },
+  { id: 85, team: "Futbol Emotion Zaragoza", dorsal: 10, name: "Claudia", surname: "Vera Gracia", pos: "Pivot", birthDate: "2000-08-14", photo: "CV", starter: true, seconds: 800 },
+  { id: 86, team: "Futbol Emotion Zaragoza", dorsal: 12, name: "Cristina", surname: "Abad Palacio", pos: "Ala", birthDate: "2003-01-06", photo: "CA", starter: false, seconds: 590 },
 ];
 
 const SEASONS = [
@@ -1495,344 +1576,220 @@ function PhotoUpload({ photoUrl, onChange, label = "Foto", emptyText = "Sin foto
   );
 }
 
-function RegistryPanel({ regTab, players, setPlayers, teams, setTeams }) {
-  const emptyPlayer = { team: MY_TEAM, dorsal: "", name: "", surname: "", pos: "Ala", birthDate: "", photo: "", photoUrl: "" };
-  const emptyTeam = { name: "", category: "Senior", color: "Azul", logo: "", logoUrl: "" };
-  const [playerForm, setPlayerForm] = useState(emptyPlayer);
-  const [teamForm, setTeamForm] = useState(emptyTeam);
-  // Editar tab state
-  const [editingTeamId, setEditingTeamId] = useState(null);
-  const [teamEditForm, setTeamEditForm] = useState({});
-  const [playerEditForms, setPlayerEditForms] = useState({});
+function RegistryPanel({ players, setPlayers, teams, setTeams }) {
+  const sortedTeams = sortedTeamsList(teams);
+  const [selectedTeamId, setSelectedTeamId] = React.useState(() => {
+    const mine = teams.find((t) => t.name === MY_TEAM);
+    return mine?.id || teams[0]?.id || null;
+  });
+  const [modal, setModal] = React.useState(null);
+  const [editTarget, setEditTarget] = React.useState(null);
+  const [formData, setFormData] = React.useState({});
 
-  const orderedTeams = sortedTeamsList(teams);
-  const teamNames = orderedTeams.map((t) => t.name);
-  const endaniaPlayers = players.filter((p) => p.team === MY_TEAM);
+  const selectedTeam = teams.find((t) => t.id === selectedTeamId);
+  const teamPlayers = selectedTeam
+    ? [...players.filter((p) => p.team === selectedTeam.name)].sort((a, b) => safeNum(a.dorsal) - safeNum(b.dorsal))
+    : [];
 
-  // ── Alta handlers ──
-  const savePlayer = () => {
-    if (!playerForm.name || !playerForm.dorsal || !playerForm.birthDate) return;
-    setPlayers((c) => [...c, {
-      id: Date.now(), ...playerForm,
-      dorsal: safeNum(playerForm.dorsal),
-      photo: playerForm.photo || initials(`${playerForm.name} ${playerForm.surname}`),
-      starter: false, seconds: 0,
-    }]);
-    setPlayerForm(emptyPlayer);
+  const openModal = (type, target = null) => {
+    setModal(type);
+    setEditTarget(target);
+    if (type === "newTeam") setFormData({ name: "", category: "Senior", color: "", logo: "", logoUrl: "" });
+    if (type === "editTeam") setFormData({ ...target });
+    if (type === "newPlayer") setFormData({ name: "", surname: "", dorsal: "", pos: "Ala", birthDate: "", photoUrl: "", team: selectedTeam?.name || MY_TEAM });
+    if (type === "editPlayer") setFormData({ ...target, dorsal: String(target.dorsal) });
   };
+  const closeModal = () => { setModal(null); setEditTarget(null); };
+
   const saveTeam = () => {
-    if (!teamForm.name) return;
-    setTeams((c) => [...c, { id: Date.now(), ...teamForm, logo: teamForm.logo || initials(teamForm.name) }]);
-    setTeamForm(emptyTeam);
+    if (!formData.name?.trim()) return;
+    const logo = formData.logo || initials(formData.name);
+    if (modal === "newTeam") {
+      setTeams((prev) => [...prev, { id: Date.now(), ...formData, logo }]);
+    } else {
+      setTeams((prev) => prev.map((t) => t.id === editTarget.id ? { ...t, ...formData, logo } : t));
+    }
+    closeModal();
   };
 
-  // ── Editar handlers ──
-  const startEditTeam = (team) => {
-    setEditingTeamId(team.id);
-    setTeamEditForm({ ...team });
-    const teamPlayers = players.filter((p) => p.team === team.name);
-    const forms = {};
-    teamPlayers.forEach((p) => { forms[p.id] = { ...p, dorsal: String(p.dorsal) }; });
-    setPlayerEditForms(forms);
+  const savePlayer = () => {
+    if (!formData.name?.trim() || !formData.dorsal) return;
+    const photo = initials(`${formData.name} ${formData.surname || ""}`);
+    if (modal === "newPlayer") {
+      setPlayers((prev) => [...prev, { id: Date.now(), ...formData, dorsal: safeNum(formData.dorsal), photo, starter: false, seconds: 0 }]);
+    } else {
+      setPlayers((prev) => prev.map((p) => p.id === editTarget.id ? { ...p, ...formData, dorsal: safeNum(formData.dorsal), photo } : p));
+    }
+    closeModal();
   };
-  const saveAllEdits = () => {
-    setTeams((c) => c.map((t) => t.id === editingTeamId ? { ...t, ...teamEditForm, logo: teamEditForm.logo || initials(teamEditForm.name), logoUrl: teamEditForm.logoUrl || "" } : t));
-    setPlayers((c) => c.map((p) => playerEditForms[p.id]
-      ? { ...p, ...playerEditForms[p.id], dorsal: safeNum(playerEditForms[p.id].dorsal), photo: playerEditForms[p.id].photo || initials(`${playerEditForms[p.id].name} ${playerEditForms[p.id].surname}`) }
-      : p
-    ));
-    setEditingTeamId(null);
-  };
-  const cancelAllEdits = () => setEditingTeamId(null);
 
-  // Función (no componente) para evitar que React desmonte los inputs al rerender
-  const renderPlayerForm = (form, setForm) => (
-    <div className="flex gap-4 items-start">
-      <div className="shrink-0">
-        <PhotoUpload
-          photoUrl={form.photoUrl || ""}
-          onChange={(url) => setForm((c) => ({ ...c, photoUrl: url }))}
-          size="h-28 w-28"
-        />
-        {form.birthDate && (
-          <p className="mt-1 text-center text-xs font-bold text-slate-400">{calculateAge(form.birthDate)} años</p>
-        )}
-      </div>
-      <div className="flex-1 grid grid-cols-2 gap-3">
-        <SelectBox label="Equipo" value={form.team} onChange={(v) => setForm((c) => ({ ...c, team: v }))} options={teamNames.length ? teamNames : [MY_TEAM]} />
-        <MiniInput label="Dorsal" value={form.dorsal} onChange={(v) => setForm((c) => ({ ...c, dorsal: v }))} />
-        <MiniInput label="Nombre" value={form.name} onChange={(v) => setForm((c) => ({ ...c, name: v }))} />
-        <MiniInput label="Apellidos" value={form.surname} onChange={(v) => setForm((c) => ({ ...c, surname: v }))} />
-        <SelectBox label="Posicion" value={form.pos} onChange={(v) => setForm((c) => ({ ...c, pos: v }))} options={POSITIONS} />
-        <MiniInput label="Nacimiento" type="date" value={form.birthDate} onChange={(v) => setForm((c) => ({ ...c, birthDate: v }))} />
-      </div>
-    </div>
-  );
-
-  // ══════════════════════════════════════════════
-  // PESTAÑA ALTA
-  // ══════════════════════════════════════════════
-  if (regTab === "Alta") return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-
-        {/* ── Izquierda: Alta de equipo ── */}
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm">
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4">
-              <p className="text-xs font-black uppercase tracking-widest text-white/75">Nuevo equipo</p>
-              <h3 className="text-xl font-black text-white">Alta de equipo</h3>
-            </div>
-            <div className="space-y-4 p-5">
-              <div className="flex gap-4 items-start">
-                <div className="shrink-0">
-                  <PhotoUpload
-                    photoUrl={teamForm.logoUrl}
-                    onChange={(url) => setTeamForm((c) => ({ ...c, logoUrl: url }))}
-                    label="Logo"
-                    emptyText="Sin logo"
-                    size="h-20 w-20"
-                  />
-                </div>
-                <div className="flex-1 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <MiniInput label="Nombre del equipo" value={teamForm.name} onChange={(v) => setTeamForm((c) => ({ ...c, name: v }))} />
-                    <MiniInput label="Siglas" value={teamForm.logo} onChange={(v) => setTeamForm((c) => ({ ...c, logo: v }))} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <SelectBox label="Categoria" value={teamForm.category} onChange={(v) => setTeamForm((c) => ({ ...c, category: v }))} options={CATEGORY_OPTIONS} />
-                    <MiniInput label="Color principal" value={teamForm.color} onChange={(v) => setTeamForm((c) => ({ ...c, color: v }))} />
-                  </div>
-                </div>
-              </div>
-              <button type="button" onClick={saveTeam}
-                className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 py-3 text-sm font-black text-white shadow-md transition hover:from-emerald-400 hover:to-teal-500">
-                + Guardar equipo
-              </button>
-            </div>
-          </div>
-
-          {/* Equipos dados de alta */}
-          <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-black text-slate-900">Equipos registrados</h4>
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">{orderedTeams.length} equipos</span>
-              </div>
-            </div>
-            <div className="divide-y divide-slate-50">
-              {orderedTeams.length ? orderedTeams.map((team) => {
-                const count = players.filter((p) => p.team === team.name).length;
-                const isMine = team.name === MY_TEAM;
-                return (
-                  <div key={team.id} className={cn("flex items-center gap-3 px-5 py-3", isMine && "bg-emerald-50/60")}>
-                    {team.logoUrl
-                      ? <img src={team.logoUrl} className="h-10 w-10 rounded-xl object-cover shrink-0" alt={team.name} />
-                      : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-xs font-black text-white">{team.logo || initials(team.name)}</div>
-                    }
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-slate-900 truncate">
-                        {isMine && <span className="mr-1 text-amber-500">★</span>}
-                        {team.name}
-                      </p>
-                      <p className="text-xs text-slate-500">{team.category} · {team.color}</p>
-                    </div>
-                    <span className="rounded-xl bg-slate-100 px-2 py-1 text-xs font-black text-slate-600">{count} jug.</span>
-                  </div>
-                );
-              }) : <p className="px-5 py-4 text-sm text-slate-400">Sin equipos aún.</p>}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Derecha: Alta de jugadora ── */}
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-sm">
-            <div className="bg-gradient-to-r from-violet-500 to-fuchsia-600 px-6 py-4">
-              <p className="text-xs font-black uppercase tracking-widest text-white/75">Nueva jugadora</p>
-              <h3 className="text-xl font-black text-white">Alta de jugadora</h3>
-            </div>
-            <div className="space-y-4 p-5">
-              {renderPlayerForm(playerForm, setPlayerForm)}
-              <button type="button" onClick={savePlayer}
-                className="w-full rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-3 text-sm font-black text-white shadow-md transition hover:from-violet-400 hover:to-fuchsia-500">
-                + Guardar jugadora
-              </button>
-            </div>
-          </div>
-
-          {/* Jugadoras de Endania */}
-          <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-5 py-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-black text-slate-900">
-                  <span className="mr-1 text-amber-500">★</span>{MY_TEAM}
-                </h4>
-                <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">{endaniaPlayers.length} jugadoras</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-3">
-              {endaniaPlayers.length ? endaniaPlayers.map((p) => (
-                <div key={p.id} className="flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm">
-                  <PlayerAvatar player={p} size="h-12 w-12" />
-                  <div>
-                    <p className="text-xs font-black text-slate-400">#{p.dorsal}</p>
-                    <p className="font-black text-slate-900 text-sm leading-tight">{p.name}</p>
-                    <p className="text-xs text-slate-500">{p.surname}</p>
-                    <p className="mt-1 text-xs text-slate-400">{p.pos} · {calculateAge(p.birthDate)} años</p>
-                    {p.starter && <span className="mt-1 inline-block rounded-lg bg-cyan-100 px-2 py-0.5 text-[10px] font-black text-cyan-700">Titular</span>}
-                  </div>
-                </div>
-              )) : <p className="col-span-full py-4 text-sm text-slate-400">Sin jugadoras registradas.</p>}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ══════════════════════════════════════════════
-  // PESTAÑA EDITAR
-  // ══════════════════════════════════════════════
-  const editingTeam = teams.find((t) => t.id === editingTeamId);
-  const editingTeamPlayers = editingTeam ? players.filter((p) => p.team === editingTeam.name) : [];
+  const isTeamModal = modal === "newTeam" || modal === "editTeam";
+  const isEditing = modal === "editTeam" || modal === "editPlayer";
+  const setF = (field, val) => setFormData((prev) => ({ ...prev, [field]: val }));
 
   return (
-    <div className="space-y-6">
-      {editingTeamId && editingTeam ? (
-        /* ── Vista de edición de un equipo ── */
-        <div className="space-y-5">
-          {/* Botón guardar sticky arriba */}
-          <div className="flex items-center justify-between rounded-3xl border border-emerald-200 bg-emerald-50 px-5 py-4 shadow-sm">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_1fr]">
+
+        {/* Columna izquierda: equipos */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
             <div>
-              <p className="text-xs font-black uppercase tracking-wide text-emerald-600">Editando</p>
-              <p className="text-lg font-black text-slate-950">{editingTeam.name}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Equipos</p>
+              <p className="font-black text-slate-900">{sortedTeams.length} registrados</p>
             </div>
-            <div className="flex gap-3">
-              <button type="button" onClick={cancelAllEdits}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50">
-                Cancelar
-              </button>
-              <button type="button" onClick={saveAllEdits}
-                className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-2.5 text-sm font-black text-white shadow-md transition hover:from-emerald-400 hover:to-teal-500">
-                Guardar cambios
-              </button>
-            </div>
+            <button type="button" onClick={() => openModal("newTeam")}
+              className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:from-emerald-400 hover:to-teal-500">
+              + Nuevo equipo
+            </button>
           </div>
-
-          {/* Datos del equipo */}
-          <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
-            <div className="bg-gradient-to-r from-slate-700 to-slate-900 px-6 py-4">
-              <p className="text-xs font-black uppercase tracking-widest text-white/60">Info del equipo</p>
-              <h3 className="text-lg font-black text-white">{editingTeam.name}</h3>
-            </div>
-            <div className="flex gap-4 items-start p-5">
-              <div className="shrink-0">
-                <PhotoUpload
-                  photoUrl={teamEditForm.logoUrl || ""}
-                  onChange={(url) => setTeamEditForm((c) => ({ ...c, logoUrl: url }))}
-                  label="Logo"
-                  emptyText="Sin logo"
-                  size="h-20 w-20"
-                />
-              </div>
-              <div className="flex-1 grid grid-cols-2 gap-4 md:grid-cols-4">
-                <MiniInput label="Nombre" value={teamEditForm.name || ""} onChange={(v) => setTeamEditForm((c) => ({ ...c, name: v }))} />
-                <MiniInput label="Siglas" value={teamEditForm.logo || ""} onChange={(v) => setTeamEditForm((c) => ({ ...c, logo: v }))} />
-                <SelectBox label="Categoria" value={teamEditForm.category || "Senior"} onChange={(v) => setTeamEditForm((c) => ({ ...c, category: v }))} options={CATEGORY_OPTIONS} />
-                <MiniInput label="Color" value={teamEditForm.color || ""} onChange={(v) => setTeamEditForm((c) => ({ ...c, color: v }))} />
-              </div>
-            </div>
-          </div>
-
-          {/* Jugadoras del equipo */}
-          <div className="overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
-            <div className="border-b border-slate-100 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-black text-slate-900">Jugadoras de {editingTeam.name}</h4>
-                <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-black text-violet-700">{editingTeamPlayers.length} jugadoras</span>
-              </div>
-            </div>
-            <div className="divide-y divide-slate-50">
-              {editingTeamPlayers.length ? editingTeamPlayers.map((player) => {
-                const form = playerEditForms[player.id] || { ...player, dorsal: String(player.dorsal) };
-                const update = (field, val) => setPlayerEditForms((c) => ({ ...c, [player.id]: { ...form, [field]: val } }));
-                return (
-                  <div key={player.id} className="p-5">
-                    <div className="mb-3 flex items-center gap-3">
-                      <PlayerAvatar player={{ ...player, photoUrl: form.photoUrl }} size="h-12 w-12" />
-                      <div className="flex-1">
-                        <p className="font-black text-slate-900">{playerName(player)}</p>
-                        <p className="text-xs text-slate-400">#{player.dorsal} · {player.pos}</p>
-                      </div>
-                      <PhotoUpload photoUrl={form.photoUrl || ""} onChange={(url) => update("photoUrl", url)} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                      <MiniInput label="Nombre" value={form.name} onChange={(v) => update("name", v)} />
-                      <MiniInput label="Apellidos" value={form.surname} onChange={(v) => update("surname", v)} />
-                      <MiniInput label="Dorsal" value={form.dorsal} onChange={(v) => update("dorsal", v)} />
-                      <SelectBox label="Posicion" value={form.pos} onChange={(v) => update("pos", v)} options={POSITIONS} />
-                      <MiniInput label="Nacimiento" type="date" value={form.birthDate} onChange={(v) => update("birthDate", v)} />
-                    </div>
-                  </div>
-                );
-              }) : <p className="px-5 py-4 text-sm text-slate-400">Sin jugadoras en este equipo.</p>}
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* ── Grid de equipos con lápiz ── */
-        <div className="space-y-4">
-          <div className="rounded-3xl border border-slate-100 bg-slate-50/60 px-5 py-4">
-            <p className="text-center text-sm font-bold text-slate-500">Pulsa el lápiz de un equipo para editar su información y jugadoras</p>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {orderedTeams.length ? orderedTeams.map((team) => {
+          <div className="grid grid-cols-2 gap-2">
+            {sortedTeams.map((team) => {
               const count = players.filter((p) => p.team === team.name).length;
               const isMine = team.name === MY_TEAM;
+              const isSelected = team.id === selectedTeamId;
               return (
-                <div key={team.id} className={cn(
-                  "overflow-hidden rounded-3xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
-                  isMine ? "border-amber-200 bg-white" : "border-slate-100 bg-white"
-                )}>
-                  <div className={cn("px-5 py-4", isMine ? "bg-gradient-to-r from-amber-400 to-orange-500" : "bg-gradient-to-r from-slate-600 to-slate-800")}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                <button key={team.id} type="button" onClick={() => setSelectedTeamId(team.id)}
+                  className={cn(
+                    "relative overflow-hidden rounded-2xl border text-left transition hover:-translate-y-0.5",
+                    isSelected ? "border-violet-400 shadow-lg ring-2 ring-violet-200" : "border-slate-200 bg-white shadow-sm hover:shadow-md"
+                  )}>
+                  <div className={cn("px-3 py-2.5", isMine ? "bg-gradient-to-r from-amber-400 to-orange-500" : "bg-gradient-to-r from-slate-600 to-slate-800")}>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex min-w-0 items-center gap-2">
                         {team.logoUrl
-                          ? <img src={team.logoUrl} className="h-11 w-11 rounded-xl object-cover" alt={team.name} />
-                          : <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-sm font-black text-white">{team.logo || initials(team.name)}</div>
+                          ? <img src={team.logoUrl} className="h-8 w-8 shrink-0 rounded-lg object-cover" alt={team.name} />
+                          : <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20 text-[11px] font-black text-white">{team.logo || initials(team.name)}</div>
                         }
-                        <div>
-                          <p className="font-black text-white">
-                            {isMine && <span className="mr-1">★</span>}{team.name}
-                          </p>
-                          <p className="text-xs font-semibold text-white/70">{team.category}</p>
+                        <div className="min-w-0">
+                          <p className="truncate text-[11px] font-black text-white">{isMine ? "★ " : ""}{team.name}</p>
+                          <p className="text-[10px] text-white/70">{team.category}</p>
                         </div>
                       </div>
-                      <button type="button" onClick={() => startEditTeam(team)}
-                        title="Editar equipo"
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/20 text-base text-white transition hover:bg-white/35">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); openModal("editTeam", team); }}
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white/15 text-[11px] hover:bg-white/30">
                         ✏️
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 divide-x divide-slate-100 text-center">
-                    <div className="py-3">
-                      <p className="text-[10px] font-black uppercase text-slate-400">Color</p>
-                      <p className="mt-0.5 text-sm font-black text-slate-700">{team.color}</p>
+                  <div className="px-3 py-1.5 text-center">
+                    <span className="text-[11px] font-black text-slate-500">{count} jug.</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Columna derecha: jugadoras */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Jugadoras</p>
+              <p className="font-black text-slate-900">
+                {selectedTeam
+                  ? <><span className="text-violet-600">{selectedTeam.name}</span> · {teamPlayers.length} registradas</>
+                  : "Selecciona un equipo"}
+              </p>
+            </div>
+            {selectedTeam && (
+              <button type="button" onClick={() => openModal("newPlayer")}
+                className="rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:from-violet-400 hover:to-fuchsia-500">
+                + Nueva jugadora
+              </button>
+            )}
+          </div>
+          {selectedTeam ? (
+            teamPlayers.length > 0
+              ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {teamPlayers.map((p) => (
+                    <div key={p.id} className="relative flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                      <button type="button" onClick={() => openModal("editPlayer", p)}
+                        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-[11px] text-slate-500 hover:border-violet-300 hover:bg-violet-50">
+                        ✏️
+                      </button>
+                      <PlayerAvatar player={p} size="h-12 w-12" />
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400">#{p.dorsal}</p>
+                        <p className="text-sm font-black leading-tight text-slate-900">{p.name}</p>
+                        <p className="max-w-[90px] truncate text-xs text-slate-500">{p.surname}</p>
+                        <span className="mt-1 inline-block rounded-lg bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-500">{p.pos}</span>
+                        <p className="text-[10px] text-slate-400">{calculateAge(p.birthDate)} años</p>
+                      </div>
                     </div>
-                    <div className="py-3">
-                      <p className="text-[10px] font-black uppercase text-slate-400">Jugadoras</p>
-                      <p className="mt-0.5 text-xl font-black text-slate-900">{count}</p>
-                    </div>
-                    <div className="py-3">
-                      <p className="text-[10px] font-black uppercase text-slate-400">Categoria</p>
-                      <p className="mt-0.5 text-[11px] font-black text-slate-600">{team.category}</p>
+                  ))}
+                </div>
+              : <Card className="p-8 text-center text-sm text-slate-400">Sin jugadoras. Pulsa "+ Nueva jugadora" para añadir.</Card>
+          ) : (
+            <Card className="p-10 text-center">
+              <p className="text-4xl">👈</p>
+              <p className="mt-3 text-sm font-bold text-slate-500">Selecciona un equipo para ver sus jugadoras</p>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Modal add / edit */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          onClick={closeModal}>
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}>
+            <div className={cn("px-6 py-5", isTeamModal ? "bg-gradient-to-r from-emerald-500 to-teal-600" : "bg-gradient-to-r from-violet-500 to-fuchsia-600")}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-black text-white">
+                  {modal === "newTeam" && "Nuevo equipo"}
+                  {modal === "editTeam" && "Editar equipo"}
+                  {modal === "newPlayer" && `Nueva jugadora · ${selectedTeam?.name}`}
+                  {modal === "editPlayer" && "Editar jugadora"}
+                </h2>
+                <button type="button" onClick={closeModal}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
+              </div>
+            </div>
+            <div className="space-y-4 p-6">
+              {isTeamModal ? (
+                <>
+                  <div className="flex items-start gap-4">
+                    <PhotoUpload photoUrl={formData.logoUrl || ""} onChange={(url) => setF("logoUrl", url)} label="Logo" emptyText="Sin logo" size="h-20 w-20" />
+                    <div className="flex-1 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <MiniInput label="Nombre del equipo" value={formData.name || ""} onChange={(v) => setF("name", v)} />
+                        <MiniInput label="Siglas" value={formData.logo || ""} onChange={(v) => setF("logo", v)} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <SelectBox label="Categoría" value={formData.category || "Senior"} onChange={(v) => setF("category", v)} options={CATEGORY_OPTIONS} />
+                        <MiniInput label="Color principal" value={formData.color || ""} onChange={(v) => setF("color", v)} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            }) : <p className="text-sm text-slate-400">Sin equipos registrados.</p>}
+                  <button type="button" onClick={saveTeam}
+                    className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 py-3 text-sm font-black text-white transition hover:from-emerald-400 hover:to-teal-500">
+                    {isEditing ? "Guardar cambios" : "+ Añadir equipo"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-start gap-4">
+                    <div className="shrink-0">
+                      <PhotoUpload photoUrl={formData.photoUrl || ""} onChange={(url) => setF("photoUrl", url)} size="h-24 w-24" />
+                      {formData.birthDate && <p className="mt-1 text-center text-xs font-bold text-slate-400">{calculateAge(formData.birthDate)} años</p>}
+                    </div>
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <MiniInput label="Nombre" value={formData.name || ""} onChange={(v) => setF("name", v)} />
+                      <MiniInput label="Apellidos" value={formData.surname || ""} onChange={(v) => setF("surname", v)} />
+                      <MiniInput label="Dorsal" value={formData.dorsal || ""} onChange={(v) => setF("dorsal", v)} />
+                      <SelectBox label="Posición" value={formData.pos || "Ala"} onChange={(v) => setF("pos", v)} options={POSITIONS} />
+                      <MiniInput label="Fecha nacimiento" type="date" value={formData.birthDate || ""} onChange={(v) => setF("birthDate", v)} />
+                    </div>
+                  </div>
+                  <button type="button" onClick={savePlayer}
+                    className="w-full rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-3 text-sm font-black text-white transition hover:from-violet-400 hover:to-fuchsia-500">
+                    {isEditing ? "Guardar cambios" : "+ Añadir jugadora"}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -2287,7 +2244,7 @@ export default function App() {
               {mainTab === "session" && sessionTab === "Analizar" && <SessionAnalysisPanel sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
               {mainTab === "session" && sessionTab === "Sesion de entreno" && <TrainingSessionPanel onSaveTraining={(t) => setTrainings((c) => [t, ...c])} />}
               {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} setMatches={setMatches} />}
-              {mainTab === "registro" && <RegistryPanel regTab={regTab} players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} />}
+              {mainTab === "registro" && <RegistryPanel players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} />}
               {mainTab === "bd" && <DatabasePanel teams={seasonTeams} players={seasonPlayers} matches={seasonMatches} trainings={seasonTrainings} dbTeam={dbTeam} setDbTeam={setDbTeam} dbScope={dbScope} setDbScope={setDbScope} dbStats={dbStats} dbView={dbView} setDbView={setDbView} />}
             </ErrorBoundary>
           </div>
