@@ -1703,10 +1703,10 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
                   <div className="flex items-center gap-3 bg-gradient-to-r from-slate-700 to-slate-900 px-3 py-3">
                     {team.logoUrl
                       ? <img src={team.logoUrl} className="h-11 w-11 shrink-0 rounded-xl object-cover" alt={team.name} />
-                      : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-sm font-black text-white">{team.logo || initials(team.name)}</div>
+                      : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-yellow-400 bg-red-100 text-sm font-black text-red-900">{team.logo || initials(team.name)}</div>
                     }
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-black leading-tight text-white">
+                      <p className="truncate text-sm font-black text-white">
                         {isMine && <span className="mr-1 text-amber-300">★</span>}{team.name}
                       </p>
                       <p className="mt-0.5 text-[11px] text-white/60">{team.category} · {count} jug.</p>
