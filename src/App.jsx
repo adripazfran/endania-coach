@@ -34,10 +34,7 @@ const NAV_GROUPS = [
     title: "ANALISIS SESION", main: "session",
     titleBg: "bg-sky-700 hover:bg-yellow-600", itemBg: "bg-sky-700/90 hover:bg-yellow-600",
     activeBg: "from-sky-500 to-blue-700", accent: "from-sky-300 to-blue-600",
-    items: [
-      { label: "Analizar", icon: "◌", main: "session", sub: "Analizar" },
-      { label: "Sesion de entreno", icon: "▦", main: "session", sub: "Sesion de entreno" },
-    ],
+    items: [],
   },
   {
     title: "PARTIDO OFFLINE", main: "offline",
@@ -2083,61 +2080,313 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
 }
 
 function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSessionGoals, sessionProgress, setSessionProgress }) {
-  const hasFile = Boolean(sessionFile);
-  const hasGoals = sessionGoals.trim().length > 8;
+  const hasFile    = Boolean(sessionFile);
+  const hasGoals   = sessionGoals.trim().length > 8;
   const analysisReady = hasFile && hasGoals;
-  const blocks = [
-    { title: "Coherencia objetivo-contenido", icon: "🎯", text: "Cruce entre objetivos, tareas, duracion, densidad y demandas condicionales." },
-    { title: "Carga esperada", icon: "📈", text: "Estimacion de volumen, intensidad, complejidad decisional y pausas." },
-    { title: "Estructura", icon: "🧩", text: "Revision de calentamiento, parte principal, progresion y vuelta a la calma." },
-    { title: "Alertas", icon: "⚠️", text: "Deteccion de consignas, roles, porteras, ABP, feedback y tiempos." },
-  ];
+  const analyzed   = sessionProgress >= 100;
+
+  // ── Mock analysis data (borrador) ──
+  const MOCK = {
+    date:"2026-05-06", md:"MD-3", title:"Ataque posicional",
+    jugadoras:12, rpe:5.8, ua:358, realMin:66, effMin:53,
+    goals:"Mejorar el juego combinativo con pivot, generar superioridades en zona de finalización y conectar transición ofensiva con llegada de ala.",
+    timeBlocks:[
+      {label:"Calentamiento",  min:14, pct:21, color:"#06b6d4"},
+      {label:"Parte principal",min:42, pct:64, color:"#3b82f6"},
+      {label:"Vuelta a calma", min:7,  pct:11, color:"#8b5cf6"},
+      {label:"Pausas",         min:3,  pct:4,  color:"#94a3b8"},
+    ],
+    contents:[
+      {label:"Ataque posicional",      pct:38, color:"#3b82f6"},
+      {label:"Transición ofensiva",    pct:22, color:"#10b981"},
+      {label:"Finalización",           pct:18, color:"#f97316"},
+      {label:"Juego de porteras",      pct:12, color:"#8b5cf6"},
+      {label:"Vuelta a la calma",      pct:10, color:"#94a3b8"},
+    ],
+    radar:[
+      {dim:"Técnica",    val:7},
+      {dim:"Táctica",    val:9},
+      {dim:"Física",     val:5},
+      {dim:"Cognitiva",  val:8},
+      {dim:"Emocional",  val:6},
+    ],
+    areas:[
+      { area:"Ataque", icon:"⚔️",
+        fortalezas:["Buenas combinaciones interior-pivot con cambio de orientación","Llegada de ala al 2º palo en 4 de 6 repeticiones correctas","Pressing tras pérdida activado en el 78% de las situaciones"],
+        mejoras:["La salida de presión desde portería necesita mayor automatismo","3 jugadoras con posicionamiento tardío en transición ofensiva"],
+        badge:"bg-emerald-100 text-emerald-800",
+      },
+      { area:"Defensa", icon:"🛡️",
+        fortalezas:["Buena respuesta en repliegue organizado","Cobertura de líneas en 4-0 defendiendo correcta"],
+        mejoras:["Exceso de faltas tácticas en zona de presión media (4 en la sesión)","Déficit atencional en basculación tras cambio de juego del rival"],
+        badge:"bg-blue-100 text-blue-800",
+      },
+      { area:"ABP", icon:"⚡",
+        fortalezas:["Ejecución del córner a 2º palo correcta en 3/4 repeticiones","Defensa de libre lateral bien posicionada"],
+        mejoras:["Saques cortos mal sincronizados con los desmarques","Falta variante B en ABP ofensiva"],
+        badge:"bg-amber-100 text-amber-800",
+      },
+      { area:"Porteras", icon:"🧤",
+        fortalezas:["Participación activa en construcción de juego (11 pases largos precisos)","Buena comunicación con línea defensiva en salidas"],
+        mejoras:["Incorporación ofensiva ejecutada solo 1 vez — explotar más esta situación","Tiempo de distribución tras parada alto (>4seg en 3 ocasiones)"],
+        badge:"bg-violet-100 text-violet-800",
+      },
+    ],
+    coherencia:{ score:82, label:"Alta", color:"bg-emerald-500",
+      comentario:"El 82% de las tareas propuestas responde directamente a los objetivos declarados. El bloque de finalización tiene densidad de repeticiones apropiada (>8 rep/bloque). Se recomienda reducir la tarea de movilidad inicial en 2' para añadir una variante de ataque posicional en superioridad."
+    },
+    alertas:[
+      { tipo:"⚠️ Alerta", msg:"Tiempo efectivo por debajo del 82% objetivo (actual 80%). Revisar transiciones entre tareas.", color:"bg-amber-50 border-amber-300 text-amber-900" },
+      { tipo:"💡 Sugerencia", msg:"Introducir feedback colectivo de 3' al final de la parte principal para reforzar automatismos.", color:"bg-sky-50 border-sky-300 text-sky-900" },
+      { tipo:"✅ Correcto", msg:"Carga UA dentro del rango MD-3 esperado (320-400 UA). Sin picos de RPE individual.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
+    ],
+    recomendacion:"Para la sesión de MD-2 se recomienda consolidar las ABP trabajadas hoy añadiendo una variante defensiva. Mantener el bloque de ataque posicional pero reducir la densidad física — el volumen acumulado esta semana ya es elevado. Priorizar la sincronización ala-pivot en situaciones de 2x1.",
+  };
+
+  // Radar SVG
+  const radarPts = MOCK.radar.map((d, i) => {
+    const angle = (i / MOCK.radar.length) * Math.PI * 2 - Math.PI / 2;
+    const r = (d.val / 10) * 50;
+    return { x: 60 + r * Math.cos(angle), y: 60 + r * Math.sin(angle), label: d.dim, val: d.val, angle };
+  });
+  const radarPath = radarPts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
+  const gridLevels = [0.25, 0.5, 0.75, 1];
+
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden p-0">
-        <div className="grid grid-cols-1 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="bg-gradient-to-br from-cyan-700 via-blue-700 to-slate-900 p-6 text-white">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-3xl">📋</div>
-              <div><p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-100/80">Analisis de sesion</p><h2 className="text-2xl font-black">Entrenamiento</h2></div>
-            </div>
-            <p className="max-w-2xl text-sm leading-6 text-white/85">Sube una imagen o PDF y escribe los objetivos para cruzar contenido, carga y metodologia.</p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <label className="cursor-pointer rounded-2xl border border-white/20 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-lg transition hover:bg-cyan-50">
-                Subir foto o PDF
-                <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; setSessionFile(f ? f.name : ""); setSessionProgress(f ? 35 : 0); }} />
-              </label>
-              <span className="truncate text-sm font-bold text-white/80">{sessionFile || "Ningun archivo seleccionado"}</span>
-            </div>
-            <div className="mt-6 grid grid-cols-3 gap-3">
-              <div className="rounded-3xl border border-white/20 bg-white/15 p-4"><p className="text-[11px] font-black uppercase text-white/70">Archivo</p><p className="mt-2 text-2xl font-black">{hasFile ? "OK" : "—"}</p></div>
-              <div className="rounded-3xl border border-white/20 bg-white/15 p-4"><p className="text-[11px] font-black uppercase text-white/70">Objetivos</p><p className="mt-2 text-2xl font-black">{hasGoals ? "OK" : "—"}</p></div>
-              <div className="rounded-3xl border border-white/20 bg-white/15 p-4"><p className="text-[11px] font-black uppercase text-white/70">Analisis</p><p className="mt-2 text-2xl font-black">{sessionProgress}%</p></div>
-            </div>
+    <div className="space-y-5">
+      {/* ── INPUT CARD ── */}
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 p-6 text-white shadow-lg">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-200">Análisis de sesión</p>
+            <h2 className="mt-0.5 text-2xl font-black">Sube la sesión y define los objetivos</h2>
+            <p className="mt-1 text-sm text-white/70">Foto, PDF o plan de sesión + objetivos escritos → análisis automático</p>
           </div>
-          <div className="bg-white p-6">
-            <TextAreaBlock title="Objetivos de la sesion escritos por el entrenador" value={sessionGoals} onChange={setSessionGoals} placeholder="Ejemplo: mejorar salida de presion..." />
-            <div className="mt-5 rounded-3xl border border-slate-200 bg-cyan-50 p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-black uppercase tracking-wide text-slate-500">Estado del analisis</p>
-                <span className="rounded-full bg-cyan-100 px-3 py-1 text-sm font-black text-cyan-800">{sessionProgress}%</span>
-              </div>
-              <div className="h-4 overflow-hidden rounded-full bg-white">
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-600" style={{ width: `${sessionProgress}%` }} />
-              </div>
-              <Button className="mt-5 w-full" onClick={() => setSessionProgress((v) => Math.min(100, analysisReady ? v + 35 : v + 15))}>Analizar sesion</Button>
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="cursor-pointer rounded-2xl border border-white/25 bg-white/15 px-4 py-2.5 text-sm font-black transition hover:bg-white/25">
+              📎 Subir archivo
+              <input type="file" accept="image/*,.pdf" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; setSessionFile(f ? f.name : ""); setSessionProgress(f ? 35 : 0); }} />
+            </label>
+            <span className="text-sm font-bold text-white/60">{sessionFile || "Ningún archivo"}</span>
           </div>
         </div>
-      </Card>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-        {blocks.map((b) => (
-          <Card key={b.title} className="p-5 text-center">
-            <div className="mb-3 text-3xl">{b.icon}</div>
-            <p className="text-sm font-black text-slate-950">{b.title}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">{b.text}</p>
-          </Card>
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
+          <textarea value={sessionGoals} onChange={(e) => setSessionGoals(e.target.value)}
+            placeholder="Describe los objetivos de la sesión: p.ej. mejorar salida de presión, conectar con pivot, finalizar con llegada de ala..."
+            className="min-h-[72px] w-full resize-none rounded-2xl bg-white/10 p-3 text-sm font-semibold text-white placeholder-white/40 outline-none focus:bg-white/20 border border-white/20" />
+          <button type="button"
+            onClick={() => setSessionProgress((v) => Math.min(100, analysisReady ? 100 : v + 15))}
+            className={cn(
+              "self-stretch rounded-2xl px-6 text-sm font-black transition",
+              analysisReady
+                ? "bg-white text-blue-700 shadow-lg hover:bg-blue-50"
+                : "bg-white/20 text-white/60 cursor-not-allowed"
+            )}>
+            {analyzed ? "✅ Analizado" : "🔍 Analizar"}
+          </button>
+        </div>
+        <div className="mt-3 flex gap-3">
+          {[{l:"Archivo",v:hasFile?"✅":"—"},{l:"Objetivos",v:hasGoals?"✅":"—"},{l:"Análisis",v:`${sessionProgress}%`}].map(({l,v})=>(
+            <div key={l} className="rounded-xl bg-white/10 px-3 py-1.5 text-center">
+              <p className="text-[8px] font-black uppercase tracking-wider text-white/50">{l}</p>
+              <p className="text-sm font-black text-white">{v}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── BORRADOR DE ANÁLISIS (datos ficticios) ── */}
+      <div className="rounded-2xl border-2 border-dashed border-sky-300 bg-sky-50 px-4 py-2.5 text-center">
+        <p className="text-xs font-black text-sky-600">📊 BORRADOR — así se vería el informe una vez analizada la sesión</p>
+      </div>
+
+      {/* ── CABECERA DE SESIÓN ── */}
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-lg bg-orange-500 px-3 py-1 text-[11px] font-black text-white">{MOCK.md}</span>
+              <span className="text-[10px] font-bold text-slate-400">Miércoles · {MOCK.date.slice(5).replace("-","/")} </span>
+            </div>
+            <h3 className="mt-1 text-2xl font-black text-white">{MOCK.title}</h3>
+          </div>
+          <div className="flex gap-4">
+            {[
+              {l:"Jugadoras", v:MOCK.jugadoras, c:"text-cyan-400"},
+              {l:"RPE medio", v:MOCK.rpe,       c:"text-rose-400"},
+              {l:"Carga UA",  v:MOCK.ua,        c:"text-amber-400"},
+            ].map(({l,v,c})=>(
+              <div key={l} className="text-center">
+                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">{l}</p>
+                <p className={cn("text-2xl font-black",c)}>{v}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── KPI TIEMPOS ── */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          {l:"Tiempo real",      v:`${MOCK.realMin}′`, sub:"minutos totales",  g:"from-cyan-600 to-sky-700"},
+          {l:"Tiempo efectivo",  v:`${MOCK.effMin}′`,  sub:"min. de trabajo",  g:"from-teal-500 to-cyan-700"},
+          {l:"Pérdida",          v:`${Math.round((MOCK.realMin-MOCK.effMin)/MOCK.realMin*100)}%`, sub:`${MOCK.realMin-MOCK.effMin}′ no efectivos`, g:"from-rose-500 to-red-700"},
+        ].map(({l,v,sub,g})=>(
+          <div key={l} className={cn("overflow-hidden rounded-2xl bg-gradient-to-br p-4 text-white shadow",g)}>
+            <p className="text-[9px] font-black uppercase tracking-widest text-white/60">{l}</p>
+            <p className="mt-0.5 text-3xl font-black text-white">{v}</p>
+            <p className="text-[10px] font-bold text-white/50">{sub}</p>
+          </div>
         ))}
+      </div>
+
+      {/* ── DISTRIBUCIÓN TIEMPO + CONTENIDOS ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Distribución por bloques */}
+        <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Distribución del tiempo</p>
+          <div className="mt-4 flex h-7 w-full overflow-hidden rounded-xl">
+            {MOCK.timeBlocks.map(b=>(
+              <div key={b.label} className="flex items-center justify-center text-[8px] font-black text-white transition-all"
+                style={{width:`${b.pct}%`, background:b.color, minWidth: b.pct>6?0:0}}>
+                {b.pct > 8 ? `${b.pct}%` : ""}
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 space-y-2">
+            {MOCK.timeBlocks.map(b=>(
+              <div key={b.label} className="flex items-center gap-3">
+                <div className="h-3 w-3 shrink-0 rounded-full" style={{background:b.color}}/>
+                <span className="flex-1 text-xs font-bold text-slate-700">{b.label}</span>
+                <span className="text-xs font-black text-slate-500">{b.min}′</span>
+                <span className="w-8 text-right text-[10px] text-slate-400">{b.pct}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Contenidos trabajados */}
+        <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contenidos trabajados</p>
+          <div className="mt-4 space-y-3">
+            {MOCK.contents.map(c=>(
+              <div key={c.label}>
+                <div className="mb-1 flex justify-between text-xs font-bold">
+                  <span style={{color:c.color}}>{c.label}</span>
+                  <span className="text-slate-400">{c.pct}%</span>
+                </div>
+                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full transition-all" style={{width:`${c.pct}%`, background:c.color}}/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── ANÁLISIS POR ÁREA ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {MOCK.areas.map(a=>(
+          <div key={a.area} className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-2xl">{a.icon}</span>
+              <span className={cn("rounded-full px-3 py-1 text-xs font-black",a.badge)}>{a.area}</span>
+            </div>
+            <div className="mb-3">
+              <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600 mb-1.5">✅ Fortalezas</p>
+              <ul className="space-y-1">
+                {a.fortalezas.map((f,i)=>(
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-slate-700">
+                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400"/>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-amber-600 mb-1.5">⚠ Áreas de mejora</p>
+              <ul className="space-y-1">
+                {a.mejoras.map((m,i)=>(
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-slate-700">
+                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"/>
+                    {m}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── RADAR CAPACIDADES + COHERENCIA ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
+        {/* Radar */}
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Capacidades trabajadas</p>
+          <div className="flex justify-center">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              {/* Grid */}
+              {gridLevels.map(lvl=>(
+                <polygon key={lvl} points={MOCK.radar.map((_,i)=>{
+                  const a=(i/MOCK.radar.length)*Math.PI*2-Math.PI/2;
+                  const r=lvl*50;
+                  return `${60+r*Math.cos(a)},${60+r*Math.sin(a)}`;
+                }).join(" ")} fill="none" stroke="#334155" strokeWidth="1"/>
+              ))}
+              {/* Axes */}
+              {MOCK.radar.map((_,i)=>{
+                const a=(i/MOCK.radar.length)*Math.PI*2-Math.PI/2;
+                return <line key={i} x1="60" y1="60" x2={60+50*Math.cos(a)} y2={60+50*Math.sin(a)} stroke="#334155" strokeWidth="1"/>;
+              })}
+              {/* Fill */}
+              <polygon points={radarPts.map(p=>`${p.x},${p.y}`).join(" ")} fill="#3b82f6" fillOpacity="0.35" stroke="#3b82f6" strokeWidth="2"/>
+              {/* Dots */}
+              {radarPts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="3" fill="#60a5fa"/>)}
+            </svg>
+          </div>
+          <div className="mt-3 space-y-1.5">
+            {MOCK.radar.map((d,i)=>(
+              <div key={d.dim} className="flex items-center gap-2">
+                <span className="w-16 text-[9px] font-black text-slate-400">{d.dim}</span>
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                  <div className="h-full rounded-full bg-blue-500" style={{width:`${d.val*10}%`}}/>
+                </div>
+                <span className="text-[9px] font-black text-white">{d.val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Coherencia + alertas */}
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Coherencia objetivo — contenido</p>
+              <span className={cn("rounded-full px-3 py-1 text-xs font-black text-white", MOCK.coherencia.color)}>
+                {MOCK.coherencia.score}% · {MOCK.coherencia.label}
+              </span>
+            </div>
+            <div className="mb-3 h-3 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-emerald-500" style={{width:`${MOCK.coherencia.score}%`}}/>
+            </div>
+            <p className="text-xs leading-5 text-slate-600">{MOCK.coherencia.comentario}</p>
+          </div>
+
+          <div className="space-y-2">
+            {MOCK.alertas.map((a,i)=>(
+              <div key={i} className={cn("rounded-2xl border px-4 py-3 text-xs leading-5",a.color)}>
+                <span className="font-black">{a.tipo} · </span>{a.msg}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── RECOMENDACIÓN SIGUIENTE SESIÓN ── */}
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-lg">
+        <p className="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-2">🤖 Recomendación para la siguiente sesión</p>
+        <p className="text-sm leading-6 text-white/90">{MOCK.recomendacion}</p>
       </div>
     </div>
   );
@@ -3938,6 +4187,21 @@ export default function App() {
                 <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">BASE DE DATOS</h1>
                 <p className="mt-2 text-sm font-semibold text-white">Análisis histórico de equipos y rendimiento</p>
               </header>
+            ) : mainTab === "session" ? (
+              <header className="rounded-[32px] border border-sky-200/60 bg-gradient-to-r from-sky-500 to-blue-600 p-7 text-center shadow-lg">
+                <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">ANÁLISIS SESIÓN</h1>
+                <p className="mt-2 text-sm font-semibold text-white/80">Análisis de entrenamientos y registro de sesiones</p>
+              </header>
+            ) : mainTab === "offline" ? (
+              <header className="rounded-[32px] border border-red-200/60 bg-gradient-to-r from-red-500 to-rose-700 p-7 text-center shadow-lg">
+                <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">PARTIDO OFFLINE</h1>
+                <p className="mt-2 text-sm font-semibold text-white/80">Análisis de vídeo, scouting y prepartido</p>
+              </header>
+            ) : mainTab === "live" ? (
+              <header className="rounded-[32px] border border-yellow-200/60 bg-gradient-to-r from-yellow-500 to-amber-600 p-7 text-center shadow-lg">
+                <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">PARTIDO LIVE</h1>
+                <p className="mt-2 text-sm font-semibold text-white/80">Seguimiento en directo del partido</p>
+              </header>
             ) : (
               <header className="rounded-[32px] border border-white/80 bg-white/90 p-6 text-center shadow-sm backdrop-blur">
                 <p className="text-xs font-black uppercase tracking-[0.24em] text-violet-600">Endania Coach</p>
@@ -3955,8 +4219,29 @@ export default function App() {
                   {offlineTab === "Recomendacion IA" && <RecommendationPanel />}
                 </div>
               )}
-              {mainTab === "session" && sessionTab === "Analizar" && <SessionAnalysisPanel sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
-              {mainTab === "session" && sessionTab === "Sesion de entreno" && <TrainingSessionPanel onSaveTraining={(t) => setTrainings((c) => [t, ...c])} />}
+              {mainTab === "session" && (
+                <div className="space-y-5">
+                  {/* ── Sub-tabs ── */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { key: "Analizar",           label: "🔍 Analizar la sesión" },
+                      { key: "Sesion de entreno",  label: "📋 Registrar la sesión" },
+                    ].map((v) => (
+                      <button key={v.key} type="button" onClick={() => setSessionTab(v.key)}
+                        className={cn(
+                          "rounded-2xl py-3 text-sm font-black transition-all",
+                          sessionTab === v.key
+                            ? "bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-md"
+                            : "border border-sky-200 bg-white/80 text-slate-600 hover:border-sky-400 hover:bg-sky-50"
+                        )}>
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                  {sessionTab === "Analizar"          && <SessionAnalysisPanel sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
+                  {sessionTab === "Sesion de entreno" && <TrainingSessionPanel onSaveTraining={(t) => setTrainings((c) => [t, ...c])} />}
+                </div>
+              )}
               {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} setMatches={setMatches} />}
               {mainTab === "registro" && <RegistryPanel players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} />}
               {mainTab === "bd" && <DatabasePanel teams={seasonTeams} players={seasonPlayers} matches={seasonMatches} trainings={seasonTrainings} dbTeam={dbTeam} setDbTeam={setDbTeam} dbView={dbView} setDbView={setDbView} />}
