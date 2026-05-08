@@ -2856,9 +2856,9 @@ function TrainingSessionPanel({ onSaveTraining }) {
 
   const saveTraining = () => {
     const concepts = [
-      ...warmupRows.map(r => r.name),
-      ...mainRows.map(r => r.name),
-      ...cooldownRows.map(r => r.name),
+      ...warmupRows.map(r => r.type),
+      ...mainRows.map(r => r.type),
+      ...cooldownRows.map(r => r.type),
     ].filter(Boolean).slice(0, 6);
     const newTraining = {
       id: Date.now(),
@@ -2868,7 +2868,7 @@ function TrainingSessionPanel({ onSaveTraining }) {
       realMinutes: globalSummary.real,
       effectiveMinutes: Math.round(globalSummary.real * 0.82),
       avgRpe: globalSummary.avgRpe,
-      attendance: 12,
+      attendance: safeNum(infoJugadoras) || 12,
       concepts,
     };
     onSaveTraining(newTraining);
@@ -3322,16 +3322,18 @@ function DatabaseInfoView({ teamName, matches, teams, players }) {
       ["Amarillas", stats.yellow],
       ["Rojas", stats.red],
     ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
+    const csv = "﻿" + rows.map((r) => r.join(";")).join("\n");
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
     a.download = `${teamName}_estadisticas.csv`;
     a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   const exportPDF = () => {
     if (!stats) return;
     const win = window.open("", "_blank");
+    if (!win) return;
     win.document.write(`<html><head><title>Estadísticas · ${teamName}</title>
     <style>body{font-family:Arial,sans-serif;padding:30px;color:#0f172a}h1{color:#1e40af}table{border-collapse:collapse;width:100%}td,th{border:1px solid #e2e8f0;padding:8px 12px}th{background:#f8fafc;font-weight:700}tr:nth-child(even){background:#f1f5f9}</style>
     </head><body><h1>Estadísticas — ${teamName}</h1><p>Partidos analizados: ${filtered.length}</p>
@@ -3748,7 +3750,7 @@ function MicrocycleSumView({ anchors, trainings, matches, teamName }) {
 }
 
 function TrainingsDatabasePanel({ trainings, matches, teamName, players }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateStr(new Date());
 
   const [mode, setMode] = useState("actual");
   const [compareA, setCompareA] = useState("");
@@ -4141,7 +4143,11 @@ function HistorialDashboard({ trainings, matches, teamName }) {
 
   // ── Monthly data ──
   const MONTHS    = ["Ago","Sep","Oct","Nov","Dic","Ene","Feb","Mar","Abr","May","Jun","Jul"];
-  const MONTH_KEYS= ["2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07"];
+  const seasonYear = parseInt(seasonStart.slice(0, 4));
+  const MONTH_KEYS = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(seasonYear, 7 + i, 1); // 7 = agosto
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
   const monthlyUA       = MONTH_KEYS.map(k => myTrainings.filter(t=>t.date.startsWith(k)).reduce((s,t)=>s+(t.ua||0),0));
   const monthlyRpeTrain = MONTH_KEYS.map(k => { const s=myTrainings.filter(t=>t.date.startsWith(k)); return s.length?parseFloat((s.reduce((a,t)=>a+(t.avgRpe||0),0)/s.length).toFixed(1)):0; });
   const monthlyRpeMatch = MONTH_KEYS.map(k => { const s=myMatches.filter(m=>m.date.startsWith(k)); return s.length?parseFloat((s.reduce((a,m)=>a+matchRpe(m),0)/s.length).toFixed(1)):0; });
