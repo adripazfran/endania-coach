@@ -2079,8 +2079,8 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
   );
 }
 
-function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSessionGoals, sessionProgress, setSessionProgress }) {
-  const [analysisMode, setAnalysisMode] = useState("pdf"); // "pdf" | "video"
+function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals, setSessionGoals, sessionProgress, setSessionProgress }) {
+  const analysisMode = mode; // "pdf" | "video" — controlled by outer tabs
 
   const hasFile    = Boolean(sessionFile);
   const hasGoals   = sessionGoals.trim().length > 8;
@@ -2205,24 +2205,6 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
 
   return (
     <div className="space-y-5">
-
-      {/* ── SUB-TABS PDF / VÍDEO ── */}
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          { key:"pdf",   label:"📄 Análisis PDF / Foto" },
-          { key:"video", label:"🎬 Análisis de vídeo"   },
-        ].map(v => (
-          <button key={v.key} onClick={() => setAnalysisMode(v.key)}
-            className={cn(
-              "rounded-2xl py-2.5 text-sm font-black transition-all",
-              analysisMode === v.key
-                ? "bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-md"
-                : "border border-sky-200 bg-white/80 text-slate-600 hover:bg-sky-50"
-            )}>
-            {v.label}
-          </button>
-        ))}
-      </div>
 
       {/* ════════════════════════════════════════ PDF ══ */}
       {analysisMode === "pdf" && (
@@ -4420,7 +4402,7 @@ export default function App() {
   const [mainTab, setMainTab] = useState("registro");
   const [offlineTab, setOfflineTab] = useState("Analisis video");
   const [liveTab, setLiveTab] = useState("Directo");
-  const [sessionTab, setSessionTab] = useState("Analizar");
+  const [sessionTab, setSessionTab] = useState("registro");
   const [regTab, setRegTab] = useState("Alta");
   const [teams, setTeams] = useState(BASE_TEAMS);
   const [players, setPlayers] = useState(BASE_PLAYERS);
@@ -4600,11 +4582,12 @@ export default function App() {
               )}
               {mainTab === "session" && (
                 <div className="space-y-5">
-                  {/* ── Sub-tabs ── */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* ── 3 Tabs ── */}
+                  <div className="grid grid-cols-3 gap-2">
                     {[
-                      { key: "Analizar",           label: "🔍 Analizar la sesión" },
-                      { key: "Sesion de entreno",  label: "📋 Registrar la sesión" },
+                      { key: "registro", label: "📋 Registrar sesión"   },
+                      { key: "pdf",      label: "📄 Análisis PDF / Foto" },
+                      { key: "video",    label: "🎬 Análisis de vídeo"   },
                     ].map((v) => (
                       <button key={v.key} type="button" onClick={() => setSessionTab(v.key)}
                         className={cn(
@@ -4617,8 +4600,9 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  {sessionTab === "Analizar"          && <SessionAnalysisPanel sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
-                  {sessionTab === "Sesion de entreno" && <TrainingSessionPanel onSaveTraining={(t) => setTrainings((c) => [t, ...c])} />}
+                  {sessionTab === "registro" && <TrainingSessionPanel onSaveTraining={(t) => setTrainings((c) => [t, ...c])} />}
+                  {sessionTab === "pdf"      && <SessionAnalysisPanel mode="pdf"   sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
+                  {sessionTab === "video"    && <SessionAnalysisPanel mode="video" sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
                 </div>
               )}
               {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} setMatches={setMatches} />}
