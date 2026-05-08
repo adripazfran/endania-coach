@@ -303,9 +303,9 @@ const BASE_TRAININGS = [
 const CATEGORY_OPTIONS = ["Senior", "Juvenil", "Cadete", "Infantil", "Alevin", "Benjamines"];
 const POSITIONS = ["Portera", "Cierre", "Ala", "Pivot", "Universal"];
 const SAMPLE_OPTIONS = ["Ultimo partido", "Ultimos 5 partidos", "Ultimos 10 partidos", "Todos"];
-const WARMUP_OPTIONS = ["Movilidad", "Tecnica individual", "Ludico", "Tarea jugada", "Preventivo"];
-const MAIN_TASK_OPTIONS = ["Ataque", "Defensa", "ABP", "Situaciones especiales", "6m", "10m", "Ludico"];
-const COOLDOWN_OPTIONS = ["Estiramientos pasivos", "Estiramientos dinamicos", "CORE", "Movilidad de cadera", "Roller", "Otros"];
+const WARMUP_OPTIONS = ["Movilidad", "Tecnica individual", "Fundamentos", "Ludico", "Tarea jugada", "Preventivo"];
+const MAIN_TASK_OPTIONS = ["Ataque", "Defensa", "ABP", "Finalización", "Transiciones", "Situaciones especiales", "6m-10m", "Fundamentos", "Ludico"];
+const COOLDOWN_OPTIONS = ["Estiramientos pasivos", "Estiramientos dinamicos", "CORE", "Movilidad de cadera", "Roller", "Crioterapia", "Otros"];
 const DIMENSION_OPTIONS = ["5", "10", "15", "20", "40"];
 
 const CONSIGNAS = {
@@ -690,11 +690,15 @@ function SectionTitle({ title, subtitle }) {
 }
 
 function MiniInput({ label, value, onChange, type = "text", readOnly = false }) {
+  // Use text+inputMode for numeric fields to eliminate spinner arrows
+  const isNum = type === "number";
   return (
     <label className="block text-center">
       <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">{label}</span>
       <input
-        type={type} value={value} readOnly={readOnly}
+        type={isNum ? "text" : type}
+        inputMode={isNum ? "numeric" : undefined}
+        value={value} readOnly={readOnly}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
           "w-full rounded-2xl border border-slate-200 px-3 py-2 text-center text-sm outline-none focus:border-slate-500",
@@ -1200,7 +1204,7 @@ function TaskLine({ title, options, value, onChange, tint = "bg-white", accent =
       <MiniInput label="T. real" type="number" value={value.realTime} onChange={(next) => onChange({ ...value, realTime: next })} />
       <label className="block text-center">
         <span className="mb-1 block text-center text-xs font-bold uppercase tracking-wide text-slate-500">RPE</span>
-        <input type="number" min="1" max="10" value={value.rpe}
+        <input type="text" inputMode="numeric" value={value.rpe}
           onChange={(e) => { const next = validRpe(e.target.value); if (next !== null) onChange({ ...value, rpe: next }); }}
           className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-center text-sm outline-none focus:border-slate-500" />
       </label>
@@ -2728,6 +2732,7 @@ function TrainingSessionPanel({ onSaveTraining }) {
   const [compGym,  setCompGym]  = useState("");
   const [compPrev, setCompPrev] = useState("");
   const [compPort, setCompPort] = useState("");
+  const [compVid,  setCompVid]  = useState("");
 
   const sessionDate = dayTypes[selectedDayIdx]?.date || todayStr;
 
@@ -2754,7 +2759,7 @@ function TrainingSessionPanel({ onSaveTraining }) {
   const [mainRows, setMainRows] = useState([
     buildTask("Ataque", 40, 20, 12, 13, 6), buildTask("Defensa", 40, 20, 12, 11, 7),
     buildTask("ABP", 20, 20, 8, 9, 5), buildTask("Situaciones especiales", 40, 20, 10, 10, 7),
-    buildTask("6m", 20, 20, 6, 7, 6), buildTask("10m", 20, 20, 6, 6, 5),
+    buildTask("6m-10m", 20, 20, 6, 7, 6),
     buildTask("Ludico", 20, 20, 8, 8, 4),
   ]);
   const [cooldownRows, setCooldownRows] = useState([
@@ -2891,82 +2896,149 @@ function TrainingSessionPanel({ onSaveTraining }) {
             })}
           </div>
 
-          {/* Resumen día seleccionado */}
-          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/15 bg-white/8 px-4 py-3">
-            <span className="text-2xl">{selType === "sesion" ? "🏋️" : selType === "partido" ? "⚽" : "💤"}</span>
-            <div>
-              <p className="text-xs font-black uppercase tracking-wide text-white/50">Día seleccionado</p>
-              <p className="text-sm font-black text-white">
-                {DAY_FULL[selectedDayIdx]}, {weekDays[selectedDayIdx]?.getDate()} de {MONTH_ES[weekDays[selectedDayIdx]?.getMonth()]}
-                <span className={cn("ml-2 rounded-lg px-2 py-0.5 text-xs font-black", selSty.bg, selSty.text)}>
-                  {selSty.label}
-                </span>
-              </p>
-            </div>
-          </div>
 
         </div>
       </Card>
 
-      {/* ── Guardar sesión — botón en la parte superior ── */}
-      <div className="flex items-center justify-between rounded-3xl border border-sky-200 bg-gradient-to-r from-sky-50 to-blue-50 px-5 py-4 shadow-sm">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-sky-500">Guardar sesión</p>
-          <p className="mt-0.5 text-sm font-black text-slate-700">
-            {DAY_FULL[selectedDayIdx]} · {sessionDate}
-            <span className={cn("ml-2 rounded-lg px-2 py-0.5 text-xs font-black", selSty.bg, selSty.text)}>
-              {selSty.emoji} {selSty.label}
-            </span>
-          </p>
-          {saveMessage && <p className="mt-1 text-xs font-black text-emerald-600">{saveMessage}</p>}
-        </div>
-        <button
-          onClick={saveTraining}
-          className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-3 text-sm font-black text-white shadow-md shadow-sky-200 transition hover:from-sky-600 hover:to-blue-700 active:scale-95"
-        >
-          💾 Guardar sesión
-        </button>
-      </div>
+      {/* ── Complementario (izq) + Guardar sesión (der) ── */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
 
-      {/* ── Bloque Complementario ── */}
-      <div className="flex justify-center">
-        <div className="w-full max-w-lg rounded-3xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-6 shadow-md">
-          {/* Título globo */}
-          <div className="mb-5 flex items-center justify-center gap-2">
+        {/* Complementario */}
+        <div className="rounded-3xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-5 shadow-md">
+          <div className="mb-4 flex items-center justify-center gap-2">
             <div className="h-px flex-1 bg-violet-200" />
-            <p className="rounded-2xl border border-violet-300 bg-white px-4 py-1 text-sm font-black uppercase tracking-widest text-violet-700 shadow-sm">
-              ✦ Complementario
-            </p>
+            <p className="rounded-2xl border border-violet-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-violet-700 shadow-sm">✦ Complementario</p>
             <div className="h-px flex-1 bg-violet-200" />
           </div>
-          <div className="space-y-3">
+          {/* 4 cuadros en grid 2x2 */}
+          <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "🏋️ Gimnasio",    val: compGym,  set: setCompGym  },
-              { label: "🛡️ Preventivo",  val: compPrev, set: setCompPrev },
-              { label: "🧤 Porteras",    val: compPort, set: setCompPort },
-            ].map(({ label, val, set }) => (
-              <div key={label} className="flex items-center justify-between gap-4 rounded-2xl border border-violet-100 bg-white/80 px-4 py-3 shadow-sm">
-                <span className="text-sm font-black text-slate-700">{label}</span>
-                <div className="flex items-center gap-1.5">
+              { emoji: "🏋️", label: "Gimnasio",   val: compGym,  set: setCompGym,  bg: "from-blue-100 to-indigo-100",   border: "border-blue-200",   text: "text-blue-800"   },
+              { emoji: "🛡️", label: "Preventivo", val: compPrev, set: setCompPrev, bg: "from-amber-100 to-orange-100",  border: "border-amber-200",  text: "text-amber-800"  },
+              { emoji: "🧤", label: "Porteras",   val: compPort, set: setCompPort, bg: "from-emerald-100 to-teal-100",  border: "border-emerald-200",text: "text-emerald-800"},
+              { emoji: "🎬", label: "Vídeo",      val: compVid,  set: setCompVid,  bg: "from-rose-100 to-pink-100",     border: "border-rose-200",   text: "text-rose-800"   },
+            ].map(({ emoji, label, val, set, bg, border, text }) => (
+              <div key={label} className={cn("flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-4 shadow-sm", bg, border)}>
+                <span className="text-2xl">{emoji}</span>
+                <span className={cn("text-xs font-black uppercase tracking-wide", text)}>{label}</span>
+                <div className="flex items-center gap-1">
                   <input
-                    type="number" min="0" max="120"
+                    type="text" inputMode="numeric"
                     value={val}
                     onChange={e => set(e.target.value)}
-                    placeholder="0"
-                    className="w-16 rounded-xl border border-violet-200 bg-violet-50 px-2 py-1.5 text-center text-sm font-black text-violet-900 outline-none focus:border-violet-400"
+                    placeholder="—"
+                    className={cn("w-14 rounded-xl border bg-white/80 px-1 py-1.5 text-center text-sm font-black outline-none focus:bg-white", border, text)}
                   />
-                  <span className="text-xs font-bold text-slate-400">min</span>
+                  <span className="text-[10px] font-bold text-slate-400">min</span>
                 </div>
               </div>
             ))}
           </div>
-          {(compGym || compPrev || compPort) && (
-            <p className="mt-4 text-center text-xs font-bold text-violet-500">
-              Total complementario: {[compGym, compPrev, compPort].reduce((s, v) => s + (parseInt(v) || 0), 0)} min
+          {(compGym || compPrev || compPort || compVid) && (
+            <p className="mt-3 text-center text-xs font-bold text-violet-500">
+              Total: {[compGym, compPrev, compPort, compVid].reduce((s, v) => s + (parseInt(v) || 0), 0)} min
             </p>
           )}
         </div>
-      </div>
+
+        {/* Guardar sesión */}
+        <div className="flex flex-col justify-between gap-4 rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-6 shadow-sm">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-sky-500">Guardar sesión</p>
+            <p className="mt-1 text-lg font-black text-slate-800">
+              {DAY_FULL[selectedDayIdx]}
+            </p>
+            <p className="text-sm text-slate-500">{sessionDate}</p>
+            <span className={cn("mt-2 inline-block rounded-xl px-3 py-1 text-xs font-black", selSty.bg, selSty.text)}>
+              {selSty.emoji} {selSty.label}
+            </span>
+            {saveMessage && <p className="mt-3 text-xs font-black text-emerald-600">{saveMessage}</p>}
+          </div>
+          <div className="space-y-2">
+            <button
+              onClick={saveTraining}
+              className="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-black text-white shadow-md shadow-sky-200 transition hover:from-sky-600 hover:to-blue-700 active:scale-95"
+            >
+              💾 Guardar en base de datos
+            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  const allTasks = [...warmupRows, ...mainRows, ...cooldownRows];
+                  const rows = [
+                    ["Sesión", sessionDate, DAY_FULL[selectedDayIdx]],
+                    [],
+                    ["Bloque", "Tarea", "T.Est.", "T.Real", "RPE", "UA"],
+                    ...warmupRows.map(t => ["Calentamiento", t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
+                    ...mainRows.map(t  => ["Principal",      t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
+                    ...cooldownRows.map(t => ["Vuelta calma", t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
+                    [],
+                    ["Complementario", "Gimnasio", compGym + " min"],
+                    ["Complementario", "Preventivo", compPrev + " min"],
+                    ["Complementario", "Porteras", compPort + " min"],
+                    ["Complementario", "Vídeo", compVid + " min"],
+                    [],
+                    ["TOTAL UA", globalSummary.ua],
+                    ["Media RPE", globalSummary.avgRpe],
+                    ["Minutos reales", globalSummary.real],
+                  ];
+                  const csv = rows.map(r => r.join(";")).join("\n");
+                  const a = Object.assign(document.createElement("a"), {
+                    href: URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })),
+                    download: `sesion_${sessionDate}.csv`,
+                  });
+                  a.click();
+                }}
+                className="rounded-2xl border border-emerald-300 bg-white py-2.5 text-xs font-black text-emerald-700 shadow-sm transition hover:bg-emerald-50 active:scale-95"
+              >
+                ⬇ CSV
+              </button>
+              <button
+                onClick={() => {
+                  const taskRows = (rows, bloque) => rows.map(t =>
+                    `<tr><td>${bloque}</td><td>${t.type}</td><td>${t.estimatedTime}'</td><td>${t.realTime}'</td><td>${t.rpe}</td><td><b>${taskUA(t)} UA</b></td></tr>`
+                  ).join("");
+                  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+                    <title>Sesión ${sessionDate}</title>
+                    <style>
+                      *{box-sizing:border-box}body{font-family:Arial,sans-serif;padding:24px;color:#0f172a;margin:0}
+                      h1{font-size:20px;margin:0 0 4px}p{font-size:12px;color:#64748b;margin:0 0 16px}
+                      table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:16px}
+                      th{background:#0f172a;color:#fff;padding:6px 10px;text-align:left}
+                      td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
+                      tr:nth-child(even) td{background:#f8fafc}
+                      .kpi{display:inline-block;margin:4px;padding:8px 16px;border-radius:10px;background:#f1f5f9;font-size:13px;font-weight:700}
+                    </style></head><body>
+                    <h1>Sesión · ${DAY_FULL[selectedDayIdx]}, ${sessionDate}</h1>
+                    <p>Tipo: ${selSty.label}</p>
+                    <table>
+                      <tr><th>Bloque</th><th>Tarea</th><th>T.Est.</th><th>T.Real</th><th>RPE</th><th>UA</th></tr>
+                      ${taskRows(warmupRows,"Calentamiento")}
+                      ${taskRows(mainRows,"Parte principal")}
+                      ${taskRows(cooldownRows,"Vuelta a la calma")}
+                    </table>
+                    <div>
+                      <span class="kpi">💪 Carga UA: ${globalSummary.ua}</span>
+                      <span class="kpi">📊 RPE medio: ${globalSummary.avgRpe}</span>
+                      <span class="kpi">⏱ Minutos: ${globalSummary.real}'</span>
+                    </div>
+                    ${(compGym||compPrev||compPort||compVid) ? `<p style="margin-top:12px"><b>Complementario:</b> Gimnasio ${compGym||0}' · Preventivo ${compPrev||0}' · Porteras ${compPort||0}' · Vídeo ${compVid||0}'</p>` : ""}
+                  </body></html>`;
+                  const win = window.open("", "_blank");
+                  if (!win) return;
+                  win.document.write(html);
+                  win.document.close();
+                  win.print();
+                }}
+                className="rounded-2xl border border-rose-300 bg-white py-2.5 text-xs font-black text-rose-700 shadow-sm transition hover:bg-rose-50 active:scale-95"
+              >
+                ⬇ PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>{/* fin grid complementario+guardar */}
 
       {/* ── Bloques de entrenamiento ── */}
       <TrainingBlock title="Calentamiento" options={WARMUP_OPTIONS} values={warmupRows} setValues={setWarmupRows} wrapperClass="border-2 border-amber-300 bg-amber-100/80 ring-amber-200" lineClass="bg-white" accent="border-amber-200" summaryClass="bg-amber-200 text-amber-950" />
