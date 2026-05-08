@@ -2087,62 +2087,64 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
   const analysisReady = hasFile && hasGoals;
   const analyzed   = sessionProgress >= 100;
 
-  // ── Mock analysis data (borrador) ──
+  // ── Mock PDF analysis (solo lo que el plan escrito puede dar) ──
   const MOCK = {
     date:"2026-05-06", md:"MD-3", title:"Ataque posicional",
-    jugadoras:12, rpe:5.8, ua:358, realMin:66, effMin:53,
-    goals:"Mejorar el juego combinativo con pivot, generar superioridades en zona de finalización y conectar transición ofensiva con llegada de ala.",
+    jugadoras:12,
+    // Objetivos declarados por el entrenador en el documento
+    objetivos:[
+      "Mejorar la salida de presión desde portería",
+      "Conectar el juego interior-pivot en ataque posicional",
+      "Finalizar con llegada de ala al 2º palo",
+    ],
+    // Tareas extraídas del plan (lo que está escrito)
+    tareas:[
+      { nombre:"Movilidad + pases cortos",     bloque:"Calentamiento",  min:10, rpe:3, capacidad:"Técnica"  },
+      { nombre:"Rondo 4x2 salida de presión",  bloque:"Principal",      min:18, rpe:6, capacidad:"Táctica"  },
+      { nombre:"Combinación interior-pivot",   bloque:"Principal",      min:20, rpe:6, capacidad:"Táctica"  },
+      { nombre:"Juego posicional 4x4+2",       bloque:"Principal",      min:15, rpe:7, capacidad:"Cognitiva"},
+      { nombre:"Situaciones 5x4 ofensivo",     bloque:"Principal",      min:10, rpe:6, capacidad:"Táctica"  },
+      { nombre:"Estiramientos + reflexión",    bloque:"Vuelta a calma", min:7,  rpe:2, capacidad:"Física"   },
+    ],
+    // Cobertura: ¿qué objetivo cubre cada tarea del plan?
+    cobertura:[
+      { obj:"Salida de presión desde portería",  cubierto:true,  tareas:["Rondo 4x2 salida de presión"],                            icon:"✅" },
+      { obj:"Juego interior-pivot",              cubierto:true,  tareas:["Combinación interior-pivot","Juego posicional 4x4+2"],     icon:"✅" },
+      { obj:"Llegada de ala al 2º palo",         cubierto:false, tareas:[],                                                         icon:"❌" },
+    ],
+    // Distribución de tiempo según lo escrito en el plan
     timeBlocks:[
-      {label:"Calentamiento",  min:14, pct:21, color:"#06b6d4"},
-      {label:"Parte principal",min:42, pct:64, color:"#3b82f6"},
-      {label:"Vuelta a calma", min:7,  pct:11, color:"#8b5cf6"},
-      {label:"Pausas",         min:3,  pct:4,  color:"#94a3b8"},
+      {label:"Calentamiento",  min:10, pct:15, color:"#06b6d4"},
+      {label:"Parte principal",min:63, pct:75, color:"#3b82f6"},
+      {label:"Vuelta a calma", min:7,  pct:10, color:"#8b5cf6"},
     ],
-    contents:[
-      {label:"Ataque posicional",      pct:38, color:"#3b82f6"},
-      {label:"Transición ofensiva",    pct:22, color:"#10b981"},
-      {label:"Finalización",           pct:18, color:"#f97316"},
-      {label:"Juego de porteras",      pct:12, color:"#8b5cf6"},
-      {label:"Vuelta a la calma",      pct:10, color:"#94a3b8"},
-    ],
+    // Capacidades que cubre el plan (inferido del tipo de tareas escritas)
     radar:[
-      {dim:"Técnica",    val:7},
-      {dim:"Táctica",    val:9},
-      {dim:"Física",     val:5},
-      {dim:"Cognitiva",  val:8},
-      {dim:"Emocional",  val:6},
+      {dim:"Técnica",    val:4, nota:"Solo calentamiento técnico"},
+      {dim:"Táctica",    val:9, nota:"3 tareas tácticas ofensivas"},
+      {dim:"Física",     val:3, nota:"No hay tarea física específica"},
+      {dim:"Cognitiva",  val:7, nota:"4x4+2 requiere toma de decisión"},
+      {dim:"Emocional",  val:2, nota:"Sin tarea de activación emocional"},
     ],
-    areas:[
-      { area:"Ataque", icon:"⚔️",
-        fortalezas:["Buenas combinaciones interior-pivot con cambio de orientación","Llegada de ala al 2º palo en 4 de 6 repeticiones correctas","Pressing tras pérdida activado en el 78% de las situaciones"],
-        mejoras:["La salida de presión desde portería necesita mayor automatismo","3 jugadoras con posicionamiento tardío en transición ofensiva"],
-        badge:"bg-emerald-100 text-emerald-800",
-      },
-      { area:"Defensa", icon:"🛡️",
-        fortalezas:["Buena respuesta en repliegue organizado","Cobertura de líneas en 4-0 defendiendo correcta"],
-        mejoras:["Exceso de faltas tácticas en zona de presión media (4 en la sesión)","Déficit atencional en basculación tras cambio de juego del rival"],
-        badge:"bg-blue-100 text-blue-800",
-      },
-      { area:"ABP", icon:"⚡",
-        fortalezas:["Ejecución del córner a 2º palo correcta en 3/4 repeticiones","Defensa de libre lateral bien posicionada"],
-        mejoras:["Saques cortos mal sincronizados con los desmarques","Falta variante B en ABP ofensiva"],
-        badge:"bg-amber-100 text-amber-800",
-      },
-      { area:"Porteras", icon:"🧤",
-        fortalezas:["Participación activa en construcción de juego (11 pases largos precisos)","Buena comunicación con línea defensiva en salidas"],
-        mejoras:["Incorporación ofensiva ejecutada solo 1 vez — explotar más esta situación","Tiempo de distribución tras parada alto (>4seg en 3 ocasiones)"],
-        badge:"bg-violet-100 text-violet-800",
-      },
-    ],
-    coherencia:{ score:82, label:"Alta", color:"bg-emerald-500",
-      comentario:"El 82% de las tareas propuestas responde directamente a los objetivos declarados. El bloque de finalización tiene densidad de repeticiones apropiada (>8 rep/bloque). Se recomienda reducir la tarea de movilidad inicial en 2' para añadir una variante de ataque posicional en superioridad."
+    // Carga estimada DESDE EL PLAN (duración × RPE por tarea)
+    carga:{
+      uaMin:295, uaMax:360,
+      rpeEstimado:5.6,
+      mdRango:"MD-3 → rango esperado 280–420 UA",
+      enRango:true,
     },
+    // Lo que falta o está mal en el plan
     alertas:[
-      { tipo:"⚠️ Alerta", msg:"Tiempo efectivo por debajo del 82% objetivo (actual 80%). Revisar transiciones entre tareas.", color:"bg-amber-50 border-amber-300 text-amber-900" },
-      { tipo:"💡 Sugerencia", msg:"Introducir feedback colectivo de 3' al final de la parte principal para reforzar automatismos.", color:"bg-sky-50 border-sky-300 text-sky-900" },
-      { tipo:"✅ Correcto", msg:"Carga UA dentro del rango MD-3 esperado (320-400 UA). Sin picos de RPE individual.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
+      { tipo:"❌ Objetivo sin tarea", msg:"El objetivo 'Llegada de ala al 2º palo' no tiene ninguna tarea en el plan que lo trabaje directamente.", color:"bg-rose-50 border-rose-300 text-rose-900" },
+      { tipo:"⚠️ Capacidad ausente", msg:"Ninguna tarea trabaja la componente física. Para MD-3 es aceptable, pero si hay objetivo físico debería añadirse.", color:"bg-amber-50 border-amber-300 text-amber-900" },
+      { tipo:"💡 Sugerencia",        msg:"Añade 8-10' de finalización con llegada de ala (reduce Rondo a 12') para cubrir el 3er objetivo.", color:"bg-sky-50 border-sky-300 text-sky-900" },
+      { tipo:"✅ Carga correcta",    msg:"Carga estimada (295-360 UA) dentro del rango MD-3. Distribución de bloques coherente con el día del microciclo.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
     ],
-    recomendacion:"Para la sesión de MD-2 se recomienda consolidar las ABP trabajadas hoy añadiendo una variante defensiva. Mantener el bloque de ataque posicional pero reducir la densidad física — el volumen acumulado esta semana ya es elevado. Priorizar la sincronización ala-pivot en situaciones de 2x1.",
+    coherencia:{ score:67, label:"Media",
+      color:"bg-amber-500",
+      comentario:"2 de 3 objetivos declarados están cubiertos por tareas en el plan. El objetivo de finalización con llegada de ala no aparece en ninguna tarea. La coherencia subiría al 95% añadiendo una tarea de finalización de 8-10'.",
+    },
+    recomendacion:"Antes de ejecutar la sesión: añade una tarea de finalización con llegada de ala (8-10') reduciendo el Rondo inicial a 12'. Eso cubre el 3er objetivo y sube la coherencia plan-objetivos al 95%. La carga sigue dentro del rango MD-3.",
   };
 
   // Radar SVG
@@ -2158,14 +2160,30 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
   const VIDEO_MOCK = {
     date:"2026-05-06", md:"MD-3", title:"Ataque posicional",
     videoFile:"sesion_MD3_06mayo.mp4", duracion:"1h 06min",
-    clips:[
-      { t:"04:32", tipo:"✅ Buena ejecución", desc:"Combinación interior-pivot con llegada de ala al 2º palo. Automatismo correcto.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
-      { t:"11:18", tipo:"⚠️ Error táctico",   desc:"Portera tarde en incorporación ofensiva tras recuperación — tardó 3seg de más.", color:"bg-amber-50 border-amber-300 text-amber-900" },
-      { t:"19:45", tipo:"✅ Pressing",         desc:"Recuperación en 4seg tras pérdida. Las 4 jugadoras activaron pressing coordinado.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
-      { t:"27:02", tipo:"❌ Posicionamiento",  desc:"Ala derecha sin desmarque en superioridad 3x2. Zona de finalización vacía.", color:"bg-rose-50 border-rose-300 text-rose-900" },
-      { t:"38:50", tipo:"💡 Destacado",        desc:"ABP córner a 2º palo perfectamente ejecutada — repasar en sala como referencia.", color:"bg-sky-50 border-sky-300 text-sky-900" },
-      { t:"51:14", tipo:"⚠️ Intensidad",       desc:"Bajada de intensidad perceptible en las 3 jugadoras del quinteto inicial.", color:"bg-amber-50 border-amber-300 text-amber-900" },
+    // Tiempos reales por bloque: medibles parando el cronómetro en el vídeo
+    tiemposReales:[
+      { bloque:"Calentamiento",   planMin:10, realMin:13, color:"#06b6d4" },
+      { bloque:"Parte principal", planMin:63, realMin:58, color:"#3b82f6" },
+      { bloque:"Vuelta a calma",  planMin:7,  realMin:5,  color:"#8b5cf6" },
+      { bloque:"Paradas/pausas",  planMin:0,  realMin:9,  color:"#94a3b8" },
     ],
+    // Repeticiones contadas desde el vídeo
+    repsContadas:[
+      { label:"Rep. combinación interior-pivot", plan:12, real:9  },
+      { label:"Rep. rondo salida de presión",    plan:15, real:14 },
+      { label:"Rep. situaciones 5x4",            plan:8,  real:6  },
+      { label:"Interrupciones del entrenador",   plan:"—",real:11 },
+    ],
+    // Clips marcados en el vídeo (lo más valioso del análisis de vídeo)
+    clips:[
+      { t:"06:14", tipo:"✅ Buena ejecución", desc:"Combinación interior-pivot fluida, timing de la ala correcto en llegada a 2º palo.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
+      { t:"13:40", tipo:"⚠️ Error posicional", desc:"Portera no sale a apoyar en construcción — permanece en portería cuando el rondo pide su participación.", color:"bg-amber-50 border-amber-300 text-amber-900" },
+      { t:"22:08", tipo:"✅ Pressing",          desc:"Recuperación en menos de 5seg tras pérdida. Las 4 de campo activan pressing sin demora.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
+      { t:"29:33", tipo:"❌ Sin desmarque",     desc:"Ala derecha estática en superioridad 3x2 — zona de finalización vacía. Repetir la acción.", color:"bg-rose-50 border-rose-300 text-rose-900" },
+      { t:"41:05", tipo:"💡 Clip de referencia", desc:"ABP córner a 2º palo bien ejecutada. Útil para mostrar en sala como modelo.", color:"bg-sky-50 border-sky-300 text-sky-900" },
+      { t:"53:22", tipo:"⚠️ Fatiga visible",    desc:"Ritmo de carrera claramente más lento en las 3 jugadoras del grupo A. Pausa de recuperación recomendable.", color:"bg-amber-50 border-amber-300 text-amber-900" },
+    ],
+    // Zonas de juego observadas en el vídeo (por dónde circula el balón)
     zonas:[
       { zona:"Zona ofensiva central",  pct:38, color:"#3b82f6" },
       { zona:"Banda derecha",          pct:24, color:"#10b981" },
@@ -2173,20 +2191,16 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
       { zona:"Zona defensiva",         pct:12, color:"#f97316" },
       { zona:"Transición media",       pct:8,  color:"#94a3b8" },
     ],
-    realVsPlan:[
-      { label:"Tiempo efectivo",  plan:53, real:49, unit:"min" },
-      { label:"Repeticiones ABP", plan:8,  real:5,  unit:"rep" },
-      { label:"Acciones pivot",   plan:20, real:17, unit:"acc" },
-      { label:"RPE medio",        plan:5.8,real:6.3,unit:"" },
-    ],
+    // Observaciones individuales: solo lo visible en cámara
     jugadoras:[
-      { name:"Paula",   obs:"Distribución correcta, 2 salidas largas fallidas en el 1er bloque.",       nivel:"Bien",    color:"bg-emerald-100 text-emerald-800" },
-      { name:"Noa",     obs:"Posicionamiento en bloque defensivo impecable. Referencia para el equipo.", nivel:"Muy bien",color:"bg-blue-100 text-blue-800" },
-      { name:"Lara",    obs:"Llegada al 2º palo inconsistente — solo 2/5 correctas. Trabajar timing.",  nivel:"Mejorar", color:"bg-amber-100 text-amber-800" },
-      { name:"Iria",    obs:"Pérdida de balón en salida de presión x3. Necesita más automatismo.",      nivel:"Mejorar", color:"bg-rose-100 text-rose-800" },
-      { name:"Sara",    obs:"Excelente en pressing alto y recuperación rápida. Liderazgo claro.",        nivel:"Muy bien",color:"bg-blue-100 text-blue-800" },
+      { name:"Paula",   obs:"Dos salidas largas fuera de zona en el 1er bloque. Posición en construcción mejora en 2ª parte.", nivel:"Bien",    color:"bg-emerald-100 text-emerald-800" },
+      { name:"Noa",     obs:"Referencia en posicionamiento defensivo. Siempre en línea correcta. Liderazgo verbal visible.", nivel:"Muy bien",color:"bg-blue-100 text-blue-800" },
+      { name:"Lara",    obs:"Llegada al 2º palo tarde en 3 de 5 acciones observadas. El timing de entrada necesita trabajo.", nivel:"Mejorar", color:"bg-amber-100 text-amber-800" },
+      { name:"Iria",    obs:"Pérdidas de control en salida de presión bajo presión alta — 3 pérdidas contadas en vídeo.",    nivel:"Mejorar", color:"bg-rose-100 text-rose-800" },
+      { name:"Sara",    obs:"Intensidad de pressing alta y constante. Velocidad de reacción tras pérdida claramente superior.", nivel:"Muy bien",color:"bg-blue-100 text-blue-800" },
     ],
-    recomendacion:"El vídeo confirma que el automatismo interior-pivot existe pero se activa tarde. Para MD-2: repasar el clip 04:32 en sala (2min), reducir la tarea de movilidad inicial y añadir una repetición de ABP córner ya que en vídeo solo se ejecutaron 5 de las 8 planificadas.",
+    notaRpe:"⚠️ El RPE no se puede obtener del vídeo. Requiere cuestionario post-sesión a cada jugadora.",
+    recomendacion:"El vídeo muestra que el automatismo interior-pivot existe pero se ejecuta lento (clip 06:14). Las pausas del entrenador (11 en vídeo) consumen 9' del bloque principal. Para MD-2: proyectar clip 06:14 y clip 29:33 antes de empezar la sesión. Reducir interrupciones a explicaciones de máx. 30seg.",
   };
 
   return (
@@ -2257,58 +2271,89 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
 
       {/* ── BORRADOR DE ANÁLISIS (datos ficticios) ── */}
       <div className="rounded-2xl border-2 border-dashed border-sky-300 bg-sky-50 px-4 py-2.5 text-center">
-        <p className="text-xs font-black text-sky-600">📊 BORRADOR — así se vería el informe una vez analizada la sesión</p>
+        <p className="text-xs font-black text-sky-600">📄 BORRADOR — análisis del plan escrito · los datos de ejecución requieren vídeo</p>
       </div>
 
-      {/* ── CABECERA DE SESIÓN ── */}
+      {/* ── CABECERA ── */}
       <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
               <span className="rounded-lg bg-orange-500 px-3 py-1 text-[11px] font-black text-white">{MOCK.md}</span>
-              <span className="text-[10px] font-bold text-slate-400">Miércoles · {MOCK.date.slice(5).replace("-","/")} </span>
+              <span className="text-[10px] font-bold text-slate-400">Miércoles · {MOCK.date.slice(5).replace("-","/")} · {MOCK.jugadoras} jugadoras</span>
             </div>
             <h3 className="mt-1 text-2xl font-black text-white">{MOCK.title}</h3>
           </div>
           <div className="flex gap-4">
-            {[
-              {l:"Jugadoras", v:MOCK.jugadoras, c:"text-cyan-400"},
-              {l:"RPE medio", v:MOCK.rpe,       c:"text-rose-400"},
-              {l:"Carga UA",  v:MOCK.ua,        c:"text-amber-400"},
-            ].map(({l,v,c})=>(
-              <div key={l} className="text-center">
-                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">{l}</p>
-                <p className={cn("text-2xl font-black",c)}>{v}</p>
-              </div>
-            ))}
+            <div className="text-center">
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Carga estimada</p>
+              <p className="text-xl font-black text-amber-400">{MOCK.carga.uaMin}–{MOCK.carga.uaMax}<span className="text-sm text-amber-600"> UA</span></p>
+            </div>
+            <div className="text-center">
+              <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">RPE estimado</p>
+              <p className="text-xl font-black text-rose-400">{MOCK.carga.rpeEstimado}</p>
+            </div>
+            <div className="flex items-center">
+              <span className={cn("rounded-xl px-3 py-1.5 text-xs font-black text-white", MOCK.carga.enRango ? "bg-emerald-600" : "bg-rose-600")}>
+                {MOCK.carga.enRango ? "✅ En rango" : "⚠️ Fuera de rango"} {MOCK.md}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── KPI TIEMPOS ── */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          {l:"Tiempo real",      v:`${MOCK.realMin}′`, sub:"minutos totales",  g:"from-cyan-600 to-sky-700"},
-          {l:"Tiempo efectivo",  v:`${MOCK.effMin}′`,  sub:"min. de trabajo",  g:"from-teal-500 to-cyan-700"},
-          {l:"Pérdida",          v:`${Math.round((MOCK.realMin-MOCK.effMin)/MOCK.realMin*100)}%`, sub:`${MOCK.realMin-MOCK.effMin}′ no efectivos`, g:"from-rose-500 to-red-700"},
-        ].map(({l,v,sub,g})=>(
-          <div key={l} className={cn("overflow-hidden rounded-2xl bg-gradient-to-br p-4 text-white shadow",g)}>
-            <p className="text-[9px] font-black uppercase tracking-widest text-white/60">{l}</p>
-            <p className="mt-0.5 text-3xl font-black text-white">{v}</p>
-            <p className="text-[10px] font-bold text-white/50">{sub}</p>
-          </div>
-        ))}
+      {/* ── OBJETIVOS DECLARADOS VS COBERTURA EN EL PLAN ── */}
+      <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+        <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">🎯 Objetivos declarados — cobertura en el plan</p>
+        <div className="space-y-3">
+          {MOCK.cobertura.map((c,i) => (
+            <div key={i} className={cn(
+              "flex flex-wrap items-start gap-3 rounded-2xl border px-4 py-3",
+              c.cubierto ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"
+            )}>
+              <span className="text-lg leading-none">{c.icon}</span>
+              <div className="flex-1">
+                <p className={cn("text-sm font-black", c.cubierto ? "text-emerald-900" : "text-rose-900")}>{c.obj}</p>
+                {c.cubierto
+                  ? <p className="mt-0.5 text-xs text-emerald-700">Cubierto por: {c.tareas.join(" · ")}</p>
+                  : <p className="mt-0.5 text-xs font-bold text-rose-700">Sin tarea en el plan que lo trabaje</p>
+                }
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* ── DISTRIBUCIÓN TIEMPO + CONTENIDOS ── */}
+      {/* ── TAREAS DEL PLAN + DISTRIBUCIÓN DE TIEMPO ── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+        {/* Tareas listadas en el plan */}
+        <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+          <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">📋 Tareas en el plan</p>
+          <div className="space-y-2">
+            {MOCK.tareas.map((t,i) => (
+              <div key={i} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
+                <span className="w-5 text-center text-xs font-black text-slate-400">{i+1}</span>
+                <div className="flex-1">
+                  <p className="text-xs font-black text-slate-800">{t.nombre}</p>
+                  <p className="text-[10px] text-slate-400">{t.bloque} · {t.capacidad}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-black text-slate-700">{t.min}′</p>
+                  <p className="text-[9px] text-slate-400">RPE {t.rpe}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Distribución por bloques */}
         <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Distribución del tiempo</p>
-          <div className="mt-4 flex h-7 w-full overflow-hidden rounded-xl">
+          <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">⏱ Distribución del tiempo planificado</p>
+          <div className="flex h-7 w-full overflow-hidden rounded-xl">
             {MOCK.timeBlocks.map(b=>(
-              <div key={b.label} className="flex items-center justify-center text-[8px] font-black text-white transition-all"
-                style={{width:`${b.pct}%`, background:b.color, minWidth: b.pct>6?0:0}}>
+              <div key={b.label} className="flex items-center justify-center text-[8px] font-black text-white"
+                style={{width:`${b.pct}%`, background:b.color}}>
                 {b.pct > 8 ? `${b.pct}%` : ""}
               </div>
             ))}
@@ -2323,69 +2368,20 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Contenidos trabajados */}
-        <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contenidos trabajados</p>
-          <div className="mt-4 space-y-3">
-            {MOCK.contents.map(c=>(
-              <div key={c.label}>
-                <div className="mb-1 flex justify-between text-xs font-bold">
-                  <span style={{color:c.color}}>{c.label}</span>
-                  <span className="text-slate-400">{c.pct}%</span>
-                </div>
-                <div className="h-3 overflow-hidden rounded-full bg-slate-100">
-                  <div className="h-full rounded-full transition-all" style={{width:`${c.pct}%`, background:c.color}}/>
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 rounded-xl bg-slate-50 px-3 py-2">
+            <p className="text-[9px] font-black uppercase text-slate-400">{MOCK.carga.mdRango}</p>
           </div>
         </div>
       </div>
 
-      {/* ── ANÁLISIS POR ÁREA ── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {MOCK.areas.map(a=>(
-          <div key={a.area} className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">{a.icon}</span>
-              <span className={cn("rounded-full px-3 py-1 text-xs font-black",a.badge)}>{a.area}</span>
-            </div>
-            <div className="mb-3">
-              <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600 mb-1.5">✅ Fortalezas</p>
-              <ul className="space-y-1">
-                {a.fortalezas.map((f,i)=>(
-                  <li key={i} className="flex items-start gap-1.5 text-xs text-slate-700">
-                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400"/>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-amber-600 mb-1.5">⚠ Áreas de mejora</p>
-              <ul className="space-y-1">
-                {a.mejoras.map((m,i)=>(
-                  <li key={i} className="flex items-start gap-1.5 text-xs text-slate-700">
-                    <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400"/>
-                    {m}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── RADAR CAPACIDADES + COHERENCIA ── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
-        {/* Radar */}
+      {/* ── CAPACIDADES PLANIFICADAS + COHERENCIA ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+        {/* Radar de lo que DICE el plan */}
         <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 p-5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Capacidades trabajadas</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Capacidades en el plan</p>
+          <p className="mb-3 text-[9px] text-slate-500">Inferido del tipo de tareas escritas</p>
           <div className="flex justify-center">
             <svg width="120" height="120" viewBox="0 0 120 120">
-              {/* Grid */}
               {gridLevels.map(lvl=>(
                 <polygon key={lvl} points={MOCK.radar.map((_,i)=>{
                   const a=(i/MOCK.radar.length)*Math.PI*2-Math.PI/2;
@@ -2393,25 +2389,25 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
                   return `${60+r*Math.cos(a)},${60+r*Math.sin(a)}`;
                 }).join(" ")} fill="none" stroke="#334155" strokeWidth="1"/>
               ))}
-              {/* Axes */}
               {MOCK.radar.map((_,i)=>{
                 const a=(i/MOCK.radar.length)*Math.PI*2-Math.PI/2;
                 return <line key={i} x1="60" y1="60" x2={60+50*Math.cos(a)} y2={60+50*Math.sin(a)} stroke="#334155" strokeWidth="1"/>;
               })}
-              {/* Fill */}
               <polygon points={radarPts.map(p=>`${p.x},${p.y}`).join(" ")} fill="#3b82f6" fillOpacity="0.35" stroke="#3b82f6" strokeWidth="2"/>
-              {/* Dots */}
               {radarPts.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="3" fill="#60a5fa"/>)}
             </svg>
           </div>
           <div className="mt-3 space-y-1.5">
-            {MOCK.radar.map((d,i)=>(
-              <div key={d.dim} className="flex items-center gap-2">
-                <span className="w-16 text-[9px] font-black text-slate-400">{d.dim}</span>
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
-                  <div className="h-full rounded-full bg-blue-500" style={{width:`${d.val*10}%`}}/>
+            {MOCK.radar.map(d=>(
+              <div key={d.dim}>
+                <div className="flex items-center gap-2">
+                  <span className="w-16 text-[9px] font-black text-slate-400">{d.dim}</span>
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-700">
+                    <div className="h-full rounded-full bg-blue-500" style={{width:`${d.val*10}%`}}/>
+                  </div>
+                  <span className="text-[9px] font-black text-white">{d.val}</span>
                 </div>
-                <span className="text-[9px] font-black text-white">{d.val}</span>
+                <p className="ml-[72px] text-[8px] text-slate-600 leading-3">{d.nota}</p>
               </div>
             ))}
           </div>
@@ -2421,17 +2417,16 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
         <div className="space-y-4">
           <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Coherencia objetivo — contenido</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Coherencia objetivos — tareas del plan</p>
               <span className={cn("rounded-full px-3 py-1 text-xs font-black text-white", MOCK.coherencia.color)}>
                 {MOCK.coherencia.score}% · {MOCK.coherencia.label}
               </span>
             </div>
             <div className="mb-3 h-3 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-emerald-500" style={{width:`${MOCK.coherencia.score}%`}}/>
+              <div className="h-full rounded-full" style={{width:`${MOCK.coherencia.score}%`, background: MOCK.coherencia.score >= 80 ? "#10b981" : MOCK.coherencia.score >= 60 ? "#f59e0b" : "#ef4444"}}/>
             </div>
             <p className="text-xs leading-5 text-slate-600">{MOCK.coherencia.comentario}</p>
           </div>
-
           <div className="space-y-2">
             {MOCK.alertas.map((a,i)=>(
               <div key={i} className={cn("rounded-2xl border px-4 py-3 text-xs leading-5",a.color)}>
@@ -2508,36 +2503,55 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
           </div>
         </div>
 
-        {/* ── REAL VS PLANIFICADO ── */}
+        {/* ── TIEMPOS REALES POR BLOQUE (cronometrados en vídeo) ── */}
         <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
-          <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">⚖️ Real vs planificado</p>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {VIDEO_MOCK.realVsPlan.map(r => {
-              const diff = parseFloat((r.real - r.plan).toFixed(1));
-              const ok = Math.abs(diff) / r.plan < 0.1;
-              const col = diff > 0
-                ? (r.label === "RPE medio" ? "text-rose-600" : "text-emerald-600")
-                : "text-amber-600";
+          <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">⏱ Tiempos reales por bloque — cronometrados en vídeo</p>
+          <p className="mb-4 text-[9px] text-slate-400">Lo único que el vídeo permite medir con exactitud sin datos adicionales</p>
+          <div className="space-y-3">
+            {VIDEO_MOCK.tiemposReales.map(t => {
+              const diff = t.realMin - t.planMin;
               return (
-                <div key={r.label} className="rounded-2xl bg-slate-50 p-4 text-center">
-                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">{r.label}</p>
-                  <div className="mt-1 flex items-end justify-center gap-2">
-                    <div className="text-center">
-                      <p className="text-[8px] text-slate-400">Plan</p>
-                      <p className="text-lg font-black text-slate-500">{r.plan}{r.unit}</p>
+                <div key={t.bloque} className="flex items-center gap-3">
+                  <div className="h-3 w-3 shrink-0 rounded-full" style={{background:t.color}}/>
+                  <span className="w-36 shrink-0 text-xs font-bold text-slate-700">{t.bloque}</span>
+                  <div className="flex flex-1 items-center gap-2">
+                    <div className="h-4 overflow-hidden rounded-full bg-slate-100 flex-1">
+                      <div className="h-full rounded-full" style={{width:`${Math.min(100,(t.realMin/70)*100)}%`, background:t.color}}/>
                     </div>
-                    <span className="mb-1 text-slate-300">→</span>
-                    <div className="text-center">
-                      <p className="text-[8px] text-slate-400">Real</p>
-                      <p className="text-2xl font-black text-slate-900">{r.real}{r.unit}</p>
-                    </div>
+                    <span className="w-8 text-right text-sm font-black text-slate-800">{t.realMin}′</span>
+                    <span className={cn("w-10 text-right text-[10px] font-bold", diff > 2 ? "text-rose-500" : diff < -2 ? "text-amber-500" : "text-emerald-500")}>
+                      {diff > 0 ? "+" : ""}{diff !== 0 ? `${diff}′` : "✓"}
+                    </span>
                   </div>
-                  <p className={cn("mt-1 text-xs font-black", col)}>
-                    {diff > 0 ? "+" : ""}{diff}{r.unit} {ok ? "✓" : ""}
-                  </p>
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* ── REPETICIONES CONTADAS EN VÍDEO ── */}
+        <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+          <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">🔢 Repeticiones contadas en vídeo</p>
+          <p className="mb-4 text-[9px] text-slate-400">Conteo manual o automático de acciones observadas en pantalla</p>
+          <div className="space-y-2">
+            {VIDEO_MOCK.repsContadas.map((r,i) => {
+              const diff = typeof r.real === "number" && typeof r.plan === "number" ? r.real - r.plan : null;
+              return (
+                <div key={i} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
+                  <span className="flex-1 text-xs font-bold text-slate-700">{r.label}</span>
+                  <span className="text-[10px] text-slate-400">Plan: <span className="font-black text-slate-600">{r.plan}</span></span>
+                  <span className="text-[10px] text-slate-400">Real: <span className="font-black text-slate-900">{r.real}</span></span>
+                  {diff !== null && (
+                    <span className={cn("text-xs font-black", diff < 0 ? "text-amber-500" : "text-emerald-500")}>
+                      {diff > 0 ? "+" : ""}{diff}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-800 font-bold">
+            {VIDEO_MOCK.notaRpe}
           </div>
         </div>
 
