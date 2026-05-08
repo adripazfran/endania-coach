@@ -2718,9 +2718,16 @@ function TrainingSessionPanel({ onSaveTraining }) {
       type: i >= 5 ? "descanso" : "sesion",
     }))
   );
+  const MONTH_ES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
   const [selectedDayIdx, setSelectedDayIdx] = useState(todayIdx >= 0 ? todayIdx : 0);
   const [microcycleMsg, setMicrocycleMsg] = useState("");
   const [saveMessage,   setSaveMessage]   = useState("");
+
+  // ─── Complementario ─────────────────────────────────────────────────
+  const [compGym,  setCompGym]  = useState("");
+  const [compPrev, setCompPrev] = useState("");
+  const [compPort, setCompPort] = useState("");
 
   const sessionDate = dayTypes[selectedDayIdx]?.date || todayStr;
 
@@ -2789,71 +2796,177 @@ function TrainingSessionPanel({ onSaveTraining }) {
 
       {/* ── Microciclo semanal ── */}
       <Card className="overflow-hidden p-0">
-        <div className="bg-gradient-to-r from-sky-700 via-cyan-600 to-emerald-500 p-5 text-white">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/70">Planificación semanal</p>
-          <h2 className="mt-0.5 text-xl font-black">Microciclo · Semana actual</h2>
-          <p className="mt-1 text-xs font-semibold text-white/70">Selecciona el tipo de cada día y actualiza el microciclo</p>
+        <div className="bg-gradient-to-br from-[#061a3f] via-[#0c3070] to-[#08285f] p-5 text-white">
 
-          {/* 7 columnas */}
-          <div className="mt-4 grid grid-cols-7 gap-1.5">
+          {/* Cabecera + botón Actualizar arriba */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/50">Planificación semanal</p>
+              <h2 className="mt-0.5 text-2xl font-black tracking-tight">Microciclo</h2>
+              <p className="mt-0.5 text-xs font-semibold text-white/55">Semana del {weekDays[0].getDate()} al {weekDays[6].getDate()} de {MONTH_ES[weekDays[6].getMonth()]}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1.5">
+              <button
+                onClick={actualizarMicrociclo}
+                className="rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-5 py-2.5 text-sm font-black text-white shadow-md shadow-sky-900/40 transition hover:from-sky-400 hover:to-cyan-300 active:scale-95"
+              >
+                ↻ Actualizar microciclo
+              </button>
+              {microcycleMsg && <p className="text-[10px] font-black text-emerald-300">{microcycleMsg}</p>}
+            </div>
+          </div>
+
+          {/* 7 columnas de días */}
+          <div className="mt-5 grid grid-cols-7 gap-2">
             {weekDays.map((d, i) => {
-              const dStr     = localDateStr(d);
-              const isToday  = dStr === todayStr;
-              const isSel    = selectedDayIdx === i;
-              const t        = dayTypes[i].type;
-              const sty      = TYPE_STYLE[t];
+              const dStr    = localDateStr(d);
+              const isToday = dStr === todayStr;
+              const isSel   = selectedDayIdx === i;
+              const t       = dayTypes[i].type;
+
+              // Per-type card background
+              const cardBg = t === "sesion"
+                ? isSel ? "from-sky-400 to-blue-600" : "from-sky-900/70 to-blue-900/70"
+                : t === "partido"
+                ? isSel ? "from-rose-400 to-red-600" : "from-rose-900/70 to-red-900/70"
+                : isSel ? "from-slate-500 to-slate-700" : "from-slate-800/70 to-slate-900/70";
+
+              const dayEmoji = t === "sesion" ? "🏋️" : t === "partido" ? "⚽" : "💤";
+              const dayLabel = t === "sesion" ? "Sesión" : t === "partido" ? "Partido" : "Descanso";
+
               return (
                 <div key={i}
                   onClick={() => setSelectedDayIdx(i)}
                   className={cn(
-                    "flex cursor-pointer flex-col items-center gap-1 rounded-2xl border-2 px-1 py-2 transition-all select-none",
-                    isSel  ? "border-white bg-white/25 shadow-lg scale-[1.05]"
-                           : "border-white/20 bg-white/10 hover:bg-white/18",
-                    isToday && !isSel && "border-yellow-300"
+                    "relative flex cursor-pointer flex-col items-center rounded-3xl border-2 pt-3 pb-2.5 px-1 transition-all duration-200 select-none",
+                    `bg-gradient-to-b ${cardBg}`,
+                    isSel  ? "border-white shadow-2xl scale-[1.07] z-10" : "border-white/15 hover:border-white/40 hover:scale-[1.02]",
+                    isToday && !isSel && "border-yellow-400/80 ring-2 ring-yellow-400/30"
                   )}>
-                  {/* Dropdown ENCIMA del día */}
+
+                  {/* Hoy badge */}
+                  {isToday && (
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-yellow-400 px-2 py-0.5 text-[7px] font-black uppercase tracking-wide text-slate-900 shadow">
+                      HOY
+                    </span>
+                  )}
+
+                  {/* Nombre completo del día */}
+                  <span className={cn("text-[9px] font-black uppercase tracking-widest leading-tight", isSel ? "text-white" : "text-white/60")}>
+                    {DAY_FULL[i].slice(0, 3).toUpperCase()}
+                  </span>
+                  <span className={cn("mt-0.5 text-[8px] font-bold", isSel ? "text-white/80" : "text-white/40")}>
+                    {DAY_FULL[i].slice(3)}
+                  </span>
+
+                  {/* Número del día grande */}
+                  <span className={cn("mt-1 text-3xl font-black leading-none tabular-nums", isToday ? "text-yellow-300" : isSel ? "text-white" : "text-white/85")}>
+                    {d.getDate()}
+                  </span>
+
+                  {/* Mes */}
+                  <span className={cn("text-[8px] font-bold uppercase", isSel ? "text-white/70" : "text-white/35")}>
+                    {MONTH_ES[d.getMonth()]}
+                  </span>
+
+                  {/* Emoji tipo */}
+                  <span className="mt-1.5 text-base leading-none">{dayEmoji}</span>
+
+                  {/* Dropdown tipo */}
                   <select
                     value={t}
                     onClick={e => e.stopPropagation()}
                     onChange={e => { e.stopPropagation(); updateDayType(i, e.target.value); }}
-                    className="w-full cursor-pointer rounded-lg border-none bg-white/20 py-0.5 text-center text-[8px] font-black text-white outline-none"
+                    className={cn(
+                      "mt-2 w-full cursor-pointer rounded-xl border-none py-1 text-center text-[8px] font-black outline-none",
+                      isSel ? "bg-white/25 text-white" : "bg-white/10 text-white/75"
+                    )}
                   >
-                    <option value="sesion"   className="text-slate-800 font-bold">🏋️ Sesión</option>
-                    <option value="partido"  className="text-slate-800 font-bold">⚽ Partido</option>
-                    <option value="descanso" className="text-slate-800 font-bold">💤 Descanso</option>
+                    <option value="sesion"   className="bg-slate-800 text-white">🏋️ Sesión</option>
+                    <option value="partido"  className="bg-slate-800 text-white">⚽ Partido</option>
+                    <option value="descanso" className="bg-slate-800 text-white">💤 Descanso</option>
                   </select>
-                  {/* Nombre del día */}
-                  <span className="text-[9px] font-black uppercase tracking-wide text-white/70">{DOW_NAMES[i]}</span>
-                  {/* Número */}
-                  <span className={cn("text-xl font-black leading-none", isToday ? "text-yellow-300" : "text-white")}>{d.getDate()}</span>
-                  {/* Badge tipo */}
-                  <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-black", sty.bg, sty.text)}>{sty.emoji}</span>
                 </div>
               );
             })}
           </div>
 
-          {/* Fila de estado + botón Actualizar */}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-3">
-            <span className="text-sm font-black text-white/80">
-              {DAY_FULL[selectedDayIdx]}{" "}
-              <span className={cn("rounded-lg px-2 py-0.5 text-xs font-black", selSty.bg, selSty.text)}>
-                {selSty.emoji} {selSty.label}
-              </span>
-              <span className="ml-2 text-xs font-bold text-white/60">{sessionDate}</span>
-            </span>
-            <button
-              onClick={actualizarMicrociclo}
-              className="rounded-xl bg-white/20 px-4 py-2 text-xs font-black text-white transition hover:bg-white/30 active:scale-95"
-            >
-              ↻ Actualizar microciclo
-            </button>
+          {/* Resumen día seleccionado */}
+          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/15 bg-white/8 px-4 py-3">
+            <span className="text-2xl">{selType === "sesion" ? "🏋️" : selType === "partido" ? "⚽" : "💤"}</span>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-white/50">Día seleccionado</p>
+              <p className="text-sm font-black text-white">
+                {DAY_FULL[selectedDayIdx]}, {weekDays[selectedDayIdx]?.getDate()} de {MONTH_ES[weekDays[selectedDayIdx]?.getMonth()]}
+                <span className={cn("ml-2 rounded-lg px-2 py-0.5 text-xs font-black", selSty.bg, selSty.text)}>
+                  {selSty.label}
+                </span>
+              </p>
+            </div>
           </div>
-          {microcycleMsg && (
-            <p className="mt-2 text-xs font-black text-emerald-200">{microcycleMsg}</p>
-          )}
+
         </div>
       </Card>
+
+      {/* ── Guardar sesión — botón en la parte superior ── */}
+      <div className="flex items-center justify-between rounded-3xl border border-sky-200 bg-gradient-to-r from-sky-50 to-blue-50 px-5 py-4 shadow-sm">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-sky-500">Guardar sesión</p>
+          <p className="mt-0.5 text-sm font-black text-slate-700">
+            {DAY_FULL[selectedDayIdx]} · {sessionDate}
+            <span className={cn("ml-2 rounded-lg px-2 py-0.5 text-xs font-black", selSty.bg, selSty.text)}>
+              {selSty.emoji} {selSty.label}
+            </span>
+          </p>
+          {saveMessage && <p className="mt-1 text-xs font-black text-emerald-600">{saveMessage}</p>}
+        </div>
+        <button
+          onClick={saveTraining}
+          className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-3 text-sm font-black text-white shadow-md shadow-sky-200 transition hover:from-sky-600 hover:to-blue-700 active:scale-95"
+        >
+          💾 Guardar sesión
+        </button>
+      </div>
+
+      {/* ── Bloque Complementario ── */}
+      <div className="flex justify-center">
+        <div className="w-full max-w-lg rounded-3xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-6 shadow-md">
+          {/* Título globo */}
+          <div className="mb-5 flex items-center justify-center gap-2">
+            <div className="h-px flex-1 bg-violet-200" />
+            <p className="rounded-2xl border border-violet-300 bg-white px-4 py-1 text-sm font-black uppercase tracking-widest text-violet-700 shadow-sm">
+              ✦ Complementario
+            </p>
+            <div className="h-px flex-1 bg-violet-200" />
+          </div>
+          <div className="space-y-3">
+            {[
+              { label: "🏋️ Gimnasio",    val: compGym,  set: setCompGym  },
+              { label: "🛡️ Preventivo",  val: compPrev, set: setCompPrev },
+              { label: "🧤 Porteras",    val: compPort, set: setCompPort },
+            ].map(({ label, val, set }) => (
+              <div key={label} className="flex items-center justify-between gap-4 rounded-2xl border border-violet-100 bg-white/80 px-4 py-3 shadow-sm">
+                <span className="text-sm font-black text-slate-700">{label}</span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number" min="0" max="120"
+                    value={val}
+                    onChange={e => set(e.target.value)}
+                    placeholder="0"
+                    className="w-16 rounded-xl border border-violet-200 bg-violet-50 px-2 py-1.5 text-center text-sm font-black text-violet-900 outline-none focus:border-violet-400"
+                  />
+                  <span className="text-xs font-bold text-slate-400">min</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {(compGym || compPrev || compPort) && (
+            <p className="mt-4 text-center text-xs font-bold text-violet-500">
+              Total complementario: {[compGym, compPrev, compPort].reduce((s, v) => s + (parseInt(v) || 0), 0)} min
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* ── Bloques de entrenamiento ── */}
       <TrainingBlock title="Calentamiento" options={WARMUP_OPTIONS} values={warmupRows} setValues={setWarmupRows} wrapperClass="border-2 border-amber-300 bg-amber-100/80 ring-amber-200" lineClass="bg-white" accent="border-amber-200" summaryClass="bg-amber-200 text-amber-950" />
@@ -2872,26 +2985,6 @@ function TrainingSessionPanel({ onSaveTraining }) {
 
       <MetricByTasksDashboard title="Minutaje por partes y tareas" subtitle="Minutos reales por bloque y tarea." warmupTasks={warmupRows} mainTasks={mainRows} cooldownTasks={cooldownRows} metric="time" />
       <MetricByTasksDashboard title="Carga por tareas" subtitle="Donde se concentra la carga en la sesion." warmupTasks={warmupRows} mainTasks={mainRows} cooldownTasks={cooldownRows} metric="load" />
-
-      {/* ── Guardar sesión ── */}
-      <Card className="p-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Guardar sesión para</p>
-          <p className="text-base font-black text-slate-700">
-            {DAY_FULL[selectedDayIdx]} · {sessionDate}
-            <span className={cn("ml-2 rounded-lg px-2 py-0.5 text-xs font-black", selSty.bg, selSty.text)}>
-              {selSty.emoji} {selSty.label}
-            </span>
-          </p>
-          <button
-            onClick={saveTraining}
-            className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-10 py-3 text-sm font-black text-white shadow-md transition hover:from-sky-600 hover:to-blue-700 active:scale-95"
-          >
-            💾 Guardar sesión
-          </button>
-          {saveMessage && <p className="text-sm font-black text-emerald-600">{saveMessage}</p>}
-        </div>
-      </Card>
 
     </div>
   );
