@@ -2975,13 +2975,13 @@ function TrainingSessionPanel({ onSaveTraining }) {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
 
         {/* 1 — Info sesión */}
-        <div className="rounded-3xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-sky-50 to-teal-50 p-5 shadow-md">
+        <div className="flex flex-col rounded-3xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-sky-50 to-teal-50 p-5 shadow-md">
           <div className="mb-4 flex items-center justify-center gap-2">
             <div className="h-px flex-1 bg-cyan-200" />
             <p className="rounded-2xl border border-cyan-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-cyan-700 shadow-sm">📋 Info sesión</p>
             <div className="h-px flex-1 bg-cyan-200" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex-1 grid grid-cols-2 gap-3 content-start">
             {[
               { emoji:"👥", label:"Jugadoras",  val:infoJugadoras,  set:setInfoJugadoras,  bg:"from-sky-100 to-cyan-100",     border:"border-sky-200",    text:"text-sky-800",    mode:"numeric" },
               { emoji:"🧤", label:"Porteras",   val:infoPorteras,   set:setInfoPorteras,   bg:"from-teal-100 to-emerald-100", border:"border-teal-200",   text:"text-teal-800",   mode:"numeric" },
