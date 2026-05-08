@@ -2179,11 +2179,13 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
       { nombre:"Situaciones 5x4 ofensivo",     bloque:"Principal",      min:10, rpe:6, capacidad:"Táctica"  },
       { nombre:"Estiramientos + reflexión",    bloque:"Vuelta a calma", min:7,  rpe:2, capacidad:"Física"   },
     ],
-    // Cobertura: ¿qué objetivo cubre cada tarea del plan?
+    // Cobertura: ¿qué objetivo cubre cada tarea del plan? (mín 3 – máx 5)
     cobertura:[
       { obj:"Salida de presión desde portería",  cubierto:true,  tareas:["Rondo 4x2 salida de presión"],                            icon:"✅" },
       { obj:"Juego interior-pivot",              cubierto:true,  tareas:["Combinación interior-pivot","Juego posicional 4x4+2"],     icon:"✅" },
       { obj:"Llegada de ala al 2º palo",         cubierto:false, tareas:[],                                                         icon:"❌" },
+      { obj:"Gestión de superioridades 5x4",     cubierto:true,  tareas:["Situaciones 5x4 ofensivo"],                               icon:"✅" },
+      { obj:"Activación y movilidad inicial",    cubierto:true,  tareas:["Movilidad + pases cortos"],                               icon:"✅" },
     ],
     // Distribución de tiempo según lo escrito en el plan
     timeBlocks:[
@@ -2284,12 +2286,22 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
       <div className="space-y-5">
       {/* ── INPUT: 3 bocadillos + subir archivo ── */}
       <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 p-6 text-white shadow-lg">
-        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-200">Análisis de sesión</p>
             <h2 className="mt-0.5 text-2xl font-black">Describe la sesión para el análisis IA</h2>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <button type="button"
+              onClick={() => setSessionProgress((v) => Math.min(100, analysisReady ? 100 : v + 15))}
+              className={cn(
+                "rounded-2xl px-6 py-2.5 text-sm font-black transition shadow-lg",
+                analysisReady
+                  ? "bg-white text-blue-700 hover:bg-blue-50"
+                  : "bg-white/20 text-white/60 cursor-not-allowed"
+              )}>
+              {analyzed ? "✅ Analizado" : "🔍 Analizar sesión"}
+            </button>
             <label className="cursor-pointer rounded-2xl border border-white/25 bg-white/15 px-4 py-2.5 text-sm font-black transition hover:bg-white/25">
               📎 Subir archivo
               <input type="file" accept="image/*,.pdf" className="hidden"
@@ -2297,20 +2309,6 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
             </label>
             <span className="text-sm font-bold text-white/60">{sessionFile || "Ningún archivo"}</span>
           </div>
-        </div>
-
-        {/* Analizar button — top center */}
-        <div className="mb-5 flex justify-center">
-          <button type="button"
-            onClick={() => setSessionProgress((v) => Math.min(100, analysisReady ? 100 : v + 15))}
-            className={cn(
-              "rounded-2xl px-8 py-3 text-base font-black transition shadow-lg",
-              analysisReady
-                ? "bg-white text-blue-700 hover:bg-blue-50"
-                : "bg-white/20 text-white/60 cursor-not-allowed"
-            )}>
-            {analyzed ? "✅ Analizado" : "🔍 Analizar sesión"}
-          </button>
         </div>
 
         {/* 3 bocadillos */}
@@ -2360,27 +2358,33 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
       </div>
 
       {/* ── CABECERA ── */}
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-orange-500 px-3 py-1 text-[11px] font-black text-white">{MOCK.md}</span>
-              <span className="text-[10px] font-bold text-slate-400">Miércoles · {MOCK.date.slice(5).replace("-","/")} · {MOCK.jugadoras} jugadoras</span>
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-5">
+            <span className="rounded-2xl bg-orange-500 px-5 py-3 text-4xl font-black text-white shadow-lg leading-none">{MOCK.md}</span>
+            <div>
+              <h3 className="text-3xl font-black text-white leading-tight">{MOCK.title}</h3>
+              <p className="mt-1 text-lg font-black text-slate-300">
+                {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][new Date(MOCK.date+"T12:00:00").getDay()]}
+                {" · "}
+                {new Date(MOCK.date+"T12:00:00").getDate()}
+                {" "}
+                {["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][new Date(MOCK.date+"T12:00:00").getMonth()].toUpperCase()}
+              </p>
             </div>
-            <h3 className="mt-1 text-2xl font-black text-white">{MOCK.title}</h3>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <div className="text-center">
-              <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Carga estimada</p>
-              <p className="text-xl font-black text-amber-400">{MOCK.carga.uaMin}–{MOCK.carga.uaMax}<span className="text-sm text-amber-600"> UA</span></p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Carga estimada</p>
+              <p className="text-2xl font-black text-amber-400">{MOCK.carga.uaMin}–{MOCK.carga.uaMax}<span className="text-sm text-amber-600"> UA</span></p>
             </div>
             <div className="text-center">
-              <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">RPE estimado</p>
-              <p className="text-xl font-black text-rose-400">{MOCK.carga.rpeEstimado}</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">RPE estimado</p>
+              <p className="text-2xl font-black text-rose-400">{MOCK.carga.rpeEstimado}</p>
             </div>
             <div className="flex items-center">
-              <span className={cn("rounded-xl px-3 py-1.5 text-xs font-black text-white", MOCK.carga.enRango ? "bg-emerald-600" : "bg-rose-600")}>
-                {MOCK.carga.enRango ? "✅ En rango" : "⚠️ Fuera de rango"} {MOCK.md}
+              <span className={cn("rounded-xl px-4 py-2 text-sm font-black text-white", MOCK.carga.enRango ? "bg-emerald-600" : "bg-rose-600")}>
+                {MOCK.carga.enRango ? "✅ En rango" : "⚠️ Fuera de rango"}
               </span>
             </div>
           </div>
@@ -2417,15 +2421,18 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
           <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">📋 Tareas en el plan</p>
           <div className="space-y-2">
             {MOCK.tareas.map((t,i) => (
-              <div key={i} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2">
+              <div key={i} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
                 <span className="w-5 text-center text-xs font-black text-slate-400">{i+1}</span>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-xs font-black text-slate-800">{t.nombre}</p>
                   <p className="text-[10px] text-slate-400">{t.bloque} · {t.capacidad}</p>
                 </div>
-                <div className="text-right">
+                <div className="flex flex-col items-end gap-1">
                   <p className="text-sm font-black text-slate-700">{t.min}′</p>
-                  <p className="text-[9px] text-slate-400">RPE {t.rpe}</p>
+                  <span className={cn(
+                    "rounded-lg px-2 py-0.5 text-[9px] font-black text-white",
+                    t.rpe >= 7 ? "bg-rose-500" : t.rpe >= 5 ? "bg-amber-500" : "bg-emerald-500"
+                  )}>RPE {t.rpe}</span>
                 </div>
               </div>
             ))}
@@ -2435,25 +2442,56 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
         {/* Distribución por bloques */}
         <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
           <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">⏱ Distribución del tiempo planificado</p>
-          <div className="flex h-7 w-full overflow-hidden rounded-xl">
-            {MOCK.timeBlocks.map(b=>(
-              <div key={b.label} className="flex items-center justify-center text-[8px] font-black text-white"
-                style={{width:`${b.pct}%`, background:b.color}}>
-                {b.pct > 8 ? `${b.pct}%` : ""}
+
+          {/* Barras horizontales por bloque */}
+          <div className="space-y-3">
+            {MOCK.timeBlocks.map(b => (
+              <div key={b.label}>
+                <div className="mb-1 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 shrink-0 rounded-full" style={{background:b.color}}/>
+                    <span className="text-xs font-black text-slate-700">{b.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-slate-500">{b.min}′</span>
+                    <span className="w-9 text-right text-[10px] font-bold text-slate-400">{b.pct}%</span>
+                  </div>
+                </div>
+                <div className="h-4 w-full overflow-hidden rounded-lg bg-slate-100">
+                  <div className="h-full rounded-lg transition-all"
+                    style={{width:`${b.pct}%`, background:b.color, opacity:0.85}}/>
+                </div>
               </div>
             ))}
           </div>
-          <div className="mt-4 space-y-2">
-            {MOCK.timeBlocks.map(b=>(
-              <div key={b.label} className="flex items-center gap-3">
-                <div className="h-3 w-3 shrink-0 rounded-full" style={{background:b.color}}/>
-                <span className="flex-1 text-xs font-bold text-slate-700">{b.label}</span>
-                <span className="text-xs font-black text-slate-500">{b.min}′</span>
-                <span className="w-8 text-right text-[10px] text-slate-400">{b.pct}%</span>
+
+          {/* Tiempo total + efectivo estimado */}
+          {(() => {
+            const totalMin = MOCK.timeBlocks.reduce((s,b)=>s+b.min,0);
+            const efectivo = Math.round(totalMin * 0.80);
+            const perdida  = totalMin - efectivo;
+            return (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">Total planificado</span>
+                  <span className="text-sm font-black text-slate-700">{totalMin}′</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-amber-50 px-3 py-2 border border-amber-200">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wide text-amber-600">Pérdida estimada</span>
+                    <span className="ml-1.5 text-[9px] text-amber-400">(~20% organización · transiciones)</span>
+                  </div>
+                  <span className="text-sm font-black text-amber-700">−{perdida}′</span>
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 border border-emerald-300">
+                  <span className="text-[10px] font-black uppercase tracking-wide text-emerald-700">⚡ Tiempo efectivo estimado</span>
+                  <span className="text-lg font-black text-emerald-700">{efectivo}′</span>
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-xl bg-slate-50 px-3 py-2">
+            );
+          })()}
+
+          <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2">
             <p className="text-[9px] font-black uppercase text-slate-400">{MOCK.carga.mdRango}</p>
           </div>
         </div>
@@ -2999,13 +3037,13 @@ function TrainingSessionPanel({ onSaveTraining }) {
         </div>
 
         {/* 2 — Objetivos y contenidos */}
-        <div className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 p-5 shadow-md">
+        <div className="flex flex-col rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 p-5 shadow-md">
           <div className="mb-4 flex items-center justify-center gap-2">
             <div className="h-px flex-1 bg-emerald-200" />
             <p className="rounded-2xl border border-emerald-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-emerald-700 shadow-sm">🎯 Objetivos</p>
             <div className="h-px flex-1 bg-emerald-200" />
           </div>
-          <div className="space-y-3">
+          <div className="flex-1 space-y-3">
             {[
               { label:"Objetivos generales",  val:objGenerales,   set:setObjGenerales,   ph:"Ej: Mejorar salida de presión, juego con pivot...",    color:"border-emerald-300 bg-emerald-50/60 focus:border-emerald-500" },
               { label:"Objetivos específicos", val:objEspecificos, set:setObjEspecificos, ph:"Ej: Conectar en 3 toques, llegar al 2º palo...",        color:"border-teal-300 bg-teal-50/60 focus:border-teal-500"         },
@@ -3021,13 +3059,13 @@ function TrainingSessionPanel({ onSaveTraining }) {
         </div>
 
         {/* 3 — Complementario */}
-        <div className="rounded-3xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-5 shadow-md">
+        <div className="flex flex-col rounded-3xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-5 shadow-md">
           <div className="mb-4 flex items-center justify-center gap-2">
             <div className="h-px flex-1 bg-violet-200" />
             <p className="rounded-2xl border border-violet-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-violet-700 shadow-sm">✦ Complementario</p>
             <div className="h-px flex-1 bg-violet-200" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex-1 grid grid-cols-2 gap-3 content-start">
             {[
               { emoji:"🏋️", label:"Gimnasio",   val:compGym,  set:setCompGym,  bg:"from-blue-100 to-indigo-100",   border:"border-blue-200",    text:"text-blue-800"    },
               { emoji:"🛡️", label:"Preventivo", val:compPrev, set:setCompPrev, bg:"from-amber-100 to-orange-100",  border:"border-amber-200",   text:"text-amber-800"   },
