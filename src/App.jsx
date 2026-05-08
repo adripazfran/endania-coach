@@ -2284,11 +2284,10 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
       <div className="space-y-5">
       {/* ── INPUT: 3 bocadillos + subir archivo ── */}
       <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 p-6 text-white shadow-lg">
-        <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-200">Análisis de sesión</p>
             <h2 className="mt-0.5 text-2xl font-black">Describe la sesión para el análisis IA</h2>
-            <p className="mt-1 text-sm text-white/70">Rellena los 3 bocadillos · sube el archivo · pulsa Analizar</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="cursor-pointer rounded-2xl border border-white/25 bg-white/15 px-4 py-2.5 text-sm font-black transition hover:bg-white/25">
@@ -2298,6 +2297,20 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
             </label>
             <span className="text-sm font-bold text-white/60">{sessionFile || "Ningún archivo"}</span>
           </div>
+        </div>
+
+        {/* Analizar button — top center */}
+        <div className="mb-5 flex justify-center">
+          <button type="button"
+            onClick={() => setSessionProgress((v) => Math.min(100, analysisReady ? 100 : v + 15))}
+            className={cn(
+              "rounded-2xl px-8 py-3 text-base font-black transition shadow-lg",
+              analysisReady
+                ? "bg-white text-blue-700 hover:bg-blue-50"
+                : "bg-white/20 text-white/60 cursor-not-allowed"
+            )}>
+            {analyzed ? "✅ Analizado" : "🔍 Analizar sesión"}
+          </button>
         </div>
 
         {/* 3 bocadillos */}
@@ -2325,8 +2338,8 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
             <div key={idx} className={cn("relative rounded-2xl border-2 p-4", b.border, b.bg)}>
               {/* Rabillo del bocadillo */}
               <div className={cn("absolute -top-2 left-5 h-3 w-3 rotate-45 border-l-2 border-t-2", b.border)} style={{background:"rgba(255,255,255,0.12)"}} />
-              <p className="mb-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/80">
-                <span>{b.icon}</span>{b.title}
+              <p className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-white drop-shadow">
+                <span className="text-lg">{b.icon}</span>{b.title}
               </p>
               <textarea
                 value={b.value}
@@ -2339,26 +2352,6 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
           ))}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <div className="flex gap-3">
-            {[{l:"Archivo",v:hasFile?"✅":"—"},{l:"Objetivos",v:hasGoals?"✅":"—"},{l:"Análisis",v:`${sessionProgress}%`}].map(({l,v})=>(
-              <div key={l} className="rounded-xl bg-white/10 px-3 py-1.5 text-center">
-                <p className="text-[8px] font-black uppercase tracking-wider text-white/50">{l}</p>
-                <p className="text-sm font-black text-white">{v}</p>
-              </div>
-            ))}
-          </div>
-          <button type="button"
-            onClick={() => setSessionProgress((v) => Math.min(100, analysisReady ? 100 : v + 15))}
-            className={cn(
-              "rounded-2xl px-6 py-3 text-sm font-black transition",
-              analysisReady
-                ? "bg-white text-blue-700 shadow-lg hover:bg-blue-50"
-                : "bg-white/20 text-white/60 cursor-not-allowed"
-            )}>
-            {analyzed ? "✅ Analizado" : "🔍 Analizar"}
-          </button>
-        </div>
       </div>
 
       {/* ── BORRADOR DE ANÁLISIS (datos ficticios) ── */}
@@ -2848,6 +2841,55 @@ function TrainingSessionPanel({ onSaveTraining }) {
   const selType = dayTypes[selectedDayIdx]?.type || "sesion";
   const selSty  = TYPE_STYLE[selType];
 
+  // Funciones export extraídas para reutilizar
+  const exportCSV = () => {
+    const rows = [
+      ["Sesión", sessionDate, DAY_FULL[selectedDayIdx]],
+      [],
+      ["Bloque", "Tarea", "T.Est.", "T.Real", "RPE", "UA"],
+      ...warmupRows.map(t   => ["Calentamiento", t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
+      ...mainRows.map(t     => ["Principal",      t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
+      ...cooldownRows.map(t => ["Vuelta calma",   t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
+      [],
+      ["Complementario","Gimnasio",   compGym  + " min"],
+      ["Complementario","Preventivo", compPrev + " min"],
+      ["Complementario","Porteras",   compPort + " min"],
+      ["Complementario","Vídeo",      compVid  + " min"],
+      [],
+      ["TOTAL UA", globalSummary.ua],
+      ["Media RPE", globalSummary.avgRpe],
+      ["Minutos reales", globalSummary.real],
+    ];
+    const a = Object.assign(document.createElement("a"), {
+      href: URL.createObjectURL(new Blob(["﻿" + rows.map(r => r.join(";")).join("\n")], { type: "text/csv;charset=utf-8" })),
+      download: `sesion_${sessionDate}.csv`,
+    });
+    a.click();
+  };
+
+  const exportPDFSession = () => {
+    const taskRows = (rows, bloque) => rows.map(t =>
+      `<tr><td>${bloque}</td><td>${t.type}</td><td>${t.estimatedTime}'</td><td>${t.realTime}'</td><td>${t.rpe}</td><td><b>${taskUA(t)} UA</b></td></tr>`
+    ).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+      <title>Sesión ${sessionDate}</title>
+      <style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;padding:24px;color:#0f172a;margin:0}h1{font-size:20px;margin:0 0 4px}p{font-size:12px;color:#64748b;margin:0 0 16px}table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:16px}th{background:#0f172a;color:#fff;padding:6px 10px;text-align:left}td{padding:5px 10px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafc}.kpi{display:inline-block;margin:4px;padding:8px 16px;border-radius:10px;background:#f1f5f9;font-size:13px;font-weight:700}</style>
+      </head><body>
+      <h1>Sesión · ${DAY_FULL[selectedDayIdx]}, ${sessionDate}</h1>
+      <p>Tipo: ${selSty.label}</p>
+      <table><tr><th>Bloque</th><th>Tarea</th><th>T.Est.</th><th>T.Real</th><th>RPE</th><th>UA</th></tr>
+      ${taskRows(warmupRows,"Calentamiento")}${taskRows(mainRows,"Parte principal")}${taskRows(cooldownRows,"Vuelta a la calma")}
+      </table>
+      <div><span class="kpi">💪 UA: ${globalSummary.ua}</span><span class="kpi">📊 RPE: ${globalSummary.avgRpe}</span><span class="kpi">⏱ ${globalSummary.real}'</span></div>
+      ${(compGym||compPrev||compPort||compVid)?`<p style="margin-top:12px"><b>Complementario:</b> Gimnasio ${compGym||0}' · Preventivo ${compPrev||0}' · Porteras ${compPort||0}' · Vídeo ${compVid||0}'</p>`:""}
+      </body></html>`;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.print();
+  };
+
   return (
     <div className="space-y-6">
 
@@ -2855,23 +2897,35 @@ function TrainingSessionPanel({ onSaveTraining }) {
       <Card className="overflow-hidden p-0">
         <div className="bg-gradient-to-br from-[#061a3f] via-[#0c3070] to-[#08285f] p-5 text-white">
 
-          {/* Cabecera + botón Actualizar arriba */}
+          {/* Cabecera con botón Actualizar + botones guardar/export */}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/50">Planificación semanal</p>
               <h2 className="mt-0.5 text-2xl font-black tracking-tight">Microciclo</h2>
               <p className="mt-0.5 text-xs font-semibold text-white/55">Semana del {weekDays[0].getDate()} al {weekDays[6].getDate()} de {MONTH_ES[weekDays[6].getMonth()]}</p>
             </div>
-            <div className="flex flex-col items-end gap-1.5">
-              <button
-                onClick={actualizarMicrociclo}
-                className="rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-5 py-2.5 text-sm font-black text-white shadow-md shadow-sky-900/40 transition hover:from-sky-400 hover:to-cyan-300 active:scale-95"
-              >
-                ↻ Actualizar microciclo
+            <div className="flex flex-wrap items-start gap-2">
+              <button onClick={actualizarMicrociclo}
+                className="rounded-2xl bg-gradient-to-r from-sky-500 to-cyan-400 px-4 py-2.5 text-sm font-black text-white shadow-md shadow-sky-900/40 transition hover:from-sky-400 hover:to-cyan-300 active:scale-95">
+                ↻ Actualizar
               </button>
-              {microcycleMsg && <p className="text-[10px] font-black text-emerald-300">{microcycleMsg}</p>}
+              <button onClick={saveTraining}
+                className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-black text-white shadow-md transition hover:from-emerald-400 hover:to-teal-400 active:scale-95">
+                💾 Guardar
+              </button>
+              <button onClick={exportCSV}
+                className="rounded-2xl bg-white/15 border border-white/25 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/25 active:scale-95">
+                ⬇ CSV
+              </button>
+              <button onClick={exportPDFSession}
+                className="rounded-2xl bg-white/15 border border-white/25 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/25 active:scale-95">
+                ⬇ PDF
+              </button>
             </div>
           </div>
+          {(microcycleMsg || saveMessage) && (
+            <p className="mt-2 text-[10px] font-black text-emerald-300">{microcycleMsg || saveMessage}</p>
+          )}
 
           {/* 7 columnas de días */}
           <div className="mt-5 grid grid-cols-7 gap-2">
@@ -2880,65 +2934,31 @@ function TrainingSessionPanel({ onSaveTraining }) {
               const isToday = dStr === todayStr;
               const isSel   = selectedDayIdx === i;
               const t       = dayTypes[i].type;
-
-              // Per-type card background
-              const cardBg = t === "sesion"
-                ? isSel ? "from-sky-400 to-blue-600" : "from-sky-900/70 to-blue-900/70"
+              const cardBg  = t === "sesion"
+                ? isSel ? "from-sky-400 to-blue-600"   : "from-sky-900/70 to-blue-900/70"
                 : t === "partido"
-                ? isSel ? "from-rose-400 to-red-600" : "from-rose-900/70 to-red-900/70"
+                ? isSel ? "from-rose-400 to-red-600"   : "from-rose-900/70 to-red-900/70"
                 : isSel ? "from-slate-500 to-slate-700" : "from-slate-800/70 to-slate-900/70";
-
               const dayEmoji = t === "sesion" ? "🏋️" : t === "partido" ? "⚽" : "💤";
-              const dayLabel = t === "sesion" ? "Sesión" : t === "partido" ? "Partido" : "Descanso";
-
               return (
-                <div key={i}
-                  onClick={() => setSelectedDayIdx(i)}
+                <div key={i} onClick={() => setSelectedDayIdx(i)}
                   className={cn(
                     "relative flex cursor-pointer flex-col items-center rounded-3xl border-2 pt-3 pb-2.5 px-1 transition-all duration-200 select-none",
                     `bg-gradient-to-b ${cardBg}`,
                     isSel  ? "border-white shadow-2xl scale-[1.07] z-10" : "border-white/15 hover:border-white/40 hover:scale-[1.02]",
                     isToday && !isSel && "border-yellow-400/80 ring-2 ring-yellow-400/30"
                   )}>
-
-                  {/* Hoy badge */}
                   {isToday && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-yellow-400 px-2 py-0.5 text-[7px] font-black uppercase tracking-wide text-slate-900 shadow">
-                      HOY
-                    </span>
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-yellow-400 px-2 py-0.5 text-[7px] font-black uppercase tracking-wide text-slate-900 shadow">HOY</span>
                   )}
-
-                  {/* Nombre completo del día */}
-                  <span className={cn("text-[9px] font-black uppercase tracking-widest leading-tight", isSel ? "text-white" : "text-white/60")}>
-                    {DAY_FULL[i].slice(0, 3).toUpperCase()}
-                  </span>
-                  <span className={cn("mt-0.5 text-[8px] font-bold", isSel ? "text-white/80" : "text-white/40")}>
-                    {DAY_FULL[i].slice(3)}
-                  </span>
-
-                  {/* Número del día grande */}
-                  <span className={cn("mt-1 text-3xl font-black leading-none tabular-nums", isToday ? "text-yellow-300" : isSel ? "text-white" : "text-white/85")}>
-                    {d.getDate()}
-                  </span>
-
-                  {/* Mes */}
-                  <span className={cn("text-[8px] font-bold uppercase", isSel ? "text-white/70" : "text-white/35")}>
-                    {MONTH_ES[d.getMonth()]}
-                  </span>
-
-                  {/* Emoji tipo */}
+                  <span className={cn("text-[9px] font-black uppercase tracking-widest leading-tight", isSel ? "text-white" : "text-white/60")}>{DAY_FULL[i].slice(0,3).toUpperCase()}</span>
+                  <span className={cn("mt-0.5 text-[8px] font-bold", isSel ? "text-white/80" : "text-white/40")}>{DAY_FULL[i].slice(3)}</span>
+                  <span className={cn("mt-1 text-3xl font-black leading-none tabular-nums", isToday ? "text-yellow-300" : isSel ? "text-white" : "text-white/85")}>{d.getDate()}</span>
+                  <span className={cn("text-[8px] font-bold uppercase", isSel ? "text-white/70" : "text-white/35")}>{MONTH_ES[d.getMonth()]}</span>
                   <span className="mt-1.5 text-base leading-none">{dayEmoji}</span>
-
-                  {/* Dropdown tipo */}
-                  <select
-                    value={t}
-                    onClick={e => e.stopPropagation()}
+                  <select value={t} onClick={e => e.stopPropagation()}
                     onChange={e => { e.stopPropagation(); updateDayType(i, e.target.value); }}
-                    className={cn(
-                      "mt-2 w-full cursor-pointer rounded-xl border-none py-1 text-center text-[8px] font-black outline-none",
-                      isSel ? "bg-white/25 text-white" : "bg-white/10 text-white/75"
-                    )}
-                  >
+                    className={cn("mt-2 w-full cursor-pointer rounded-xl border-none py-1 text-center text-[8px] font-black outline-none", isSel ? "bg-white/25 text-white" : "bg-white/10 text-white/75")}>
                     <option value="sesion"   className="bg-slate-800 text-white">🏋️ Sesión</option>
                     <option value="partido"  className="bg-slate-800 text-white">⚽ Partido</option>
                     <option value="descanso" className="bg-slate-800 text-white">💤 Descanso</option>
@@ -2948,149 +2968,13 @@ function TrainingSessionPanel({ onSaveTraining }) {
             })}
           </div>
 
-
         </div>
       </Card>
 
-      {/* ── Complementario (izq) + Guardar sesión (der) ── */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
+      {/* ── Info sesión | Objetivos y contenidos | Complementario — 3 columnas ── */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
 
-        {/* Complementario */}
-        <div className="rounded-3xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-5 shadow-md">
-          <div className="mb-4 flex items-center justify-center gap-2">
-            <div className="h-px flex-1 bg-violet-200" />
-            <p className="rounded-2xl border border-violet-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-violet-700 shadow-sm">✦ Complementario</p>
-            <div className="h-px flex-1 bg-violet-200" />
-          </div>
-          {/* 4 cuadros en grid 2x2 */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { emoji: "🏋️", label: "Gimnasio",   val: compGym,  set: setCompGym,  bg: "from-blue-100 to-indigo-100",   border: "border-blue-200",   text: "text-blue-800"   },
-              { emoji: "🛡️", label: "Preventivo", val: compPrev, set: setCompPrev, bg: "from-amber-100 to-orange-100",  border: "border-amber-200",  text: "text-amber-800"  },
-              { emoji: "🧤", label: "Porteras",   val: compPort, set: setCompPort, bg: "from-emerald-100 to-teal-100",  border: "border-emerald-200",text: "text-emerald-800"},
-              { emoji: "🎬", label: "Vídeo",      val: compVid,  set: setCompVid,  bg: "from-rose-100 to-pink-100",     border: "border-rose-200",   text: "text-rose-800"   },
-            ].map(({ emoji, label, val, set, bg, border, text }) => (
-              <div key={label} className={cn("flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-4 shadow-sm", bg, border)}>
-                <span className="text-2xl">{emoji}</span>
-                <span className={cn("text-xs font-black uppercase tracking-wide", text)}>{label}</span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="text" inputMode="numeric"
-                    value={val}
-                    onChange={e => set(e.target.value)}
-                    placeholder="—"
-                    className={cn("w-14 rounded-xl border bg-white/80 px-1 py-1.5 text-center text-sm font-black outline-none focus:bg-white", border, text)}
-                  />
-                  <span className="text-[10px] font-bold text-slate-400">min</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Guardar sesión */}
-        <div className="flex flex-col justify-between gap-4 rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-6 shadow-sm">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-sky-500">Guardar sesión</p>
-            <p className="mt-1 text-lg font-black text-slate-800">
-              {DAY_FULL[selectedDayIdx]}
-            </p>
-            <p className="text-sm text-slate-500">{sessionDate}</p>
-            <span className={cn("mt-2 inline-block rounded-xl px-3 py-1 text-xs font-black", selSty.bg, selSty.text)}>
-              {selSty.emoji} {selSty.label}
-            </span>
-            {saveMessage && <p className="mt-3 text-xs font-black text-emerald-600">{saveMessage}</p>}
-          </div>
-          <div className="space-y-2">
-            <button
-              onClick={saveTraining}
-              className="w-full rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-black text-white shadow-md shadow-sky-200 transition hover:from-sky-600 hover:to-blue-700 active:scale-95"
-            >
-              💾 Guardar en base de datos
-            </button>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => {
-                  const allTasks = [...warmupRows, ...mainRows, ...cooldownRows];
-                  const rows = [
-                    ["Sesión", sessionDate, DAY_FULL[selectedDayIdx]],
-                    [],
-                    ["Bloque", "Tarea", "T.Est.", "T.Real", "RPE", "UA"],
-                    ...warmupRows.map(t => ["Calentamiento", t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
-                    ...mainRows.map(t  => ["Principal",      t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
-                    ...cooldownRows.map(t => ["Vuelta calma", t.type, t.estimatedTime, t.realTime, t.rpe, taskUA(t)]),
-                    [],
-                    ["Complementario", "Gimnasio", compGym + " min"],
-                    ["Complementario", "Preventivo", compPrev + " min"],
-                    ["Complementario", "Porteras", compPort + " min"],
-                    ["Complementario", "Vídeo", compVid + " min"],
-                    [],
-                    ["TOTAL UA", globalSummary.ua],
-                    ["Media RPE", globalSummary.avgRpe],
-                    ["Minutos reales", globalSummary.real],
-                  ];
-                  const csv = rows.map(r => r.join(";")).join("\n");
-                  const a = Object.assign(document.createElement("a"), {
-                    href: URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })),
-                    download: `sesion_${sessionDate}.csv`,
-                  });
-                  a.click();
-                }}
-                className="rounded-2xl border border-emerald-300 bg-white py-2.5 text-xs font-black text-emerald-700 shadow-sm transition hover:bg-emerald-50 active:scale-95"
-              >
-                ⬇ CSV
-              </button>
-              <button
-                onClick={() => {
-                  const taskRows = (rows, bloque) => rows.map(t =>
-                    `<tr><td>${bloque}</td><td>${t.type}</td><td>${t.estimatedTime}'</td><td>${t.realTime}'</td><td>${t.rpe}</td><td><b>${taskUA(t)} UA</b></td></tr>`
-                  ).join("");
-                  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
-                    <title>Sesión ${sessionDate}</title>
-                    <style>
-                      *{box-sizing:border-box}body{font-family:Arial,sans-serif;padding:24px;color:#0f172a;margin:0}
-                      h1{font-size:20px;margin:0 0 4px}p{font-size:12px;color:#64748b;margin:0 0 16px}
-                      table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:16px}
-                      th{background:#0f172a;color:#fff;padding:6px 10px;text-align:left}
-                      td{padding:5px 10px;border-bottom:1px solid #e2e8f0}
-                      tr:nth-child(even) td{background:#f8fafc}
-                      .kpi{display:inline-block;margin:4px;padding:8px 16px;border-radius:10px;background:#f1f5f9;font-size:13px;font-weight:700}
-                    </style></head><body>
-                    <h1>Sesión · ${DAY_FULL[selectedDayIdx]}, ${sessionDate}</h1>
-                    <p>Tipo: ${selSty.label}</p>
-                    <table>
-                      <tr><th>Bloque</th><th>Tarea</th><th>T.Est.</th><th>T.Real</th><th>RPE</th><th>UA</th></tr>
-                      ${taskRows(warmupRows,"Calentamiento")}
-                      ${taskRows(mainRows,"Parte principal")}
-                      ${taskRows(cooldownRows,"Vuelta a la calma")}
-                    </table>
-                    <div>
-                      <span class="kpi">💪 Carga UA: ${globalSummary.ua}</span>
-                      <span class="kpi">📊 RPE medio: ${globalSummary.avgRpe}</span>
-                      <span class="kpi">⏱ Minutos: ${globalSummary.real}'</span>
-                    </div>
-                    ${(compGym||compPrev||compPort||compVid) ? `<p style="margin-top:12px"><b>Complementario:</b> Gimnasio ${compGym||0}' · Preventivo ${compPrev||0}' · Porteras ${compPort||0}' · Vídeo ${compVid||0}'</p>` : ""}
-                  </body></html>`;
-                  const win = window.open("", "_blank");
-                  if (!win) return;
-                  win.document.write(html);
-                  win.document.close();
-                  win.print();
-                }}
-                className="rounded-2xl border border-rose-300 bg-white py-2.5 text-xs font-black text-rose-700 shadow-sm transition hover:bg-rose-50 active:scale-95"
-              >
-                ⬇ PDF
-              </button>
-            </div>
-          </div>
-        </div>
-
-      </div>{/* fin grid complementario+guardar */}
-
-      {/* ── Info sesión + Objetivos ── */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-
-        {/* Info sesión */}
+        {/* 1 — Info sesión */}
         <div className="rounded-3xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-sky-50 to-teal-50 p-5 shadow-md">
           <div className="mb-4 flex items-center justify-center gap-2">
             <div className="h-px flex-1 bg-cyan-200" />
@@ -3099,59 +2983,73 @@ function TrainingSessionPanel({ onSaveTraining }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { emoji: "👥", label: "Jugadoras",  val: infoJugadoras,  set: setInfoJugadoras,  bg: "from-sky-100 to-cyan-100",     border: "border-sky-200",     text: "text-sky-800",     mode: "numeric", unit: null },
-              { emoji: "🧤", label: "Porteras",   val: infoPorteras,   set: setInfoPorteras,   bg: "from-teal-100 to-emerald-100", border: "border-teal-200",    text: "text-teal-800",    mode: "numeric", unit: null },
-              { emoji: "🩹", label: "Lesionadas", val: infoLesionadas, set: setInfoLesionadas, bg: "from-rose-100 to-red-100",     border: "border-rose-200",    text: "text-rose-800",    mode: "numeric", unit: null },
-              { emoji: "🏟️", label: "Pabellón",   val: infoPabellon,   set: setInfoPabellon,   bg: "from-amber-100 to-yellow-100", border: "border-amber-200",   text: "text-amber-800",   mode: "text",    unit: null },
+              { emoji:"👥", label:"Jugadoras",  val:infoJugadoras,  set:setInfoJugadoras,  bg:"from-sky-100 to-cyan-100",     border:"border-sky-200",    text:"text-sky-800",    mode:"numeric" },
+              { emoji:"🧤", label:"Porteras",   val:infoPorteras,   set:setInfoPorteras,   bg:"from-teal-100 to-emerald-100", border:"border-teal-200",   text:"text-teal-800",   mode:"numeric" },
+              { emoji:"🩹", label:"Lesionadas", val:infoLesionadas, set:setInfoLesionadas, bg:"from-rose-100 to-red-100",     border:"border-rose-200",   text:"text-rose-800",   mode:"numeric" },
+              { emoji:"🏟️", label:"Pabellón",   val:infoPabellon,   set:setInfoPabellon,   bg:"from-amber-100 to-yellow-100", border:"border-amber-200",  text:"text-amber-800",  mode:"text"    },
             ].map(({ emoji, label, val, set, bg, border, text, mode }) => (
-              <div key={label} className={cn("flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-4 shadow-sm", bg, border)}>
-                <span className="text-2xl">{emoji}</span>
-                <span className={cn("text-xs font-black uppercase tracking-wide", text)}>{label}</span>
-                <input
-                  type="text" inputMode={mode}
-                  value={val}
-                  onChange={e => set(e.target.value)}
-                  placeholder="—"
-                  className={cn("w-full rounded-xl border bg-white/80 px-2 py-1.5 text-center text-sm font-black outline-none focus:bg-white", border, text)}
-                />
+              <div key={label} className={cn("flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-3 shadow-sm", bg, border)}>
+                <span className="text-xl">{emoji}</span>
+                <span className={cn("text-[10px] font-black uppercase tracking-wide", text)}>{label}</span>
+                <input type="text" inputMode={mode} value={val} onChange={e => set(e.target.value)} placeholder="—"
+                  className={cn("w-full rounded-xl border bg-white/80 px-2 py-1 text-center text-sm font-black outline-none focus:bg-white", border, text)} />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Objetivos y contenidos */}
+        {/* 2 — Objetivos y contenidos */}
         <div className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 p-5 shadow-md">
           <div className="mb-4 flex items-center justify-center gap-2">
             <div className="h-px flex-1 bg-emerald-200" />
-            <p className="rounded-2xl border border-emerald-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-emerald-700 shadow-sm">🎯 Objetivos y contenidos</p>
+            <p className="rounded-2xl border border-emerald-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-emerald-700 shadow-sm">🎯 Objetivos</p>
             <div className="h-px flex-1 bg-emerald-200" />
           </div>
           <div className="space-y-3">
             {[
-              { label: "Objetivos generales",   val: objGenerales,   set: setObjGenerales,   placeholder: "Ej: Mejorar la salida de presión, desarrollar el juego con pivot...", color: "border-emerald-300 focus:border-emerald-500 bg-emerald-50/60" },
-              { label: "Objetivos específicos",  val: objEspecificos, set: setObjEspecificos, placeholder: "Ej: Conectar en 3 toques desde defensa, llegar al 2º palo en córner...", color: "border-teal-300 focus:border-teal-500 bg-teal-50/60" },
-              { label: "Contenidos",             val: contenidos,     set: setContenidos,     placeholder: "Ej: Rondo 5x2, situación 3x2, ABP córner con 2º palo...", color: "border-green-300 focus:border-green-500 bg-green-50/60" },
-            ].map(({ label, val, set, placeholder, color }) => (
+              { label:"Objetivos generales",  val:objGenerales,   set:setObjGenerales,   ph:"Ej: Mejorar salida de presión, juego con pivot...",    color:"border-emerald-300 bg-emerald-50/60 focus:border-emerald-500" },
+              { label:"Objetivos específicos", val:objEspecificos, set:setObjEspecificos, ph:"Ej: Conectar en 3 toques, llegar al 2º palo...",        color:"border-teal-300 bg-teal-50/60 focus:border-teal-500"         },
+              { label:"Contenidos",            val:contenidos,     set:setContenidos,     ph:"Ej: Rondo 5x2, situación 3x2, ABP córner 2º palo...",   color:"border-green-300 bg-green-50/60 focus:border-green-500"      },
+            ].map(({ label, val, set, ph, color }) => (
               <div key={label}>
                 <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</p>
-                <textarea
-                  value={val} onChange={e => set(e.target.value)}
-                  placeholder={placeholder}
-                  rows={2}
-                  className={cn("w-full resize-none rounded-2xl border px-3 py-2.5 text-sm text-slate-700 outline-none transition", color)}
-                />
+                <textarea value={val} onChange={e => set(e.target.value)} placeholder={ph} rows={2}
+                  className={cn("w-full resize-none rounded-2xl border px-3 py-2 text-sm text-slate-700 outline-none transition", color)} />
               </div>
             ))}
           </div>
         </div>
 
-      </div>
+        {/* 3 — Complementario */}
+        <div className="rounded-3xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 p-5 shadow-md">
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <div className="h-px flex-1 bg-violet-200" />
+            <p className="rounded-2xl border border-violet-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-violet-700 shadow-sm">✦ Complementario</p>
+            <div className="h-px flex-1 bg-violet-200" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { emoji:"🏋️", label:"Gimnasio",   val:compGym,  set:setCompGym,  bg:"from-blue-100 to-indigo-100",   border:"border-blue-200",    text:"text-blue-800"    },
+              { emoji:"🛡️", label:"Preventivo", val:compPrev, set:setCompPrev, bg:"from-amber-100 to-orange-100",  border:"border-amber-200",   text:"text-amber-800"   },
+              { emoji:"🧤", label:"Porteras",   val:compPort, set:setCompPort, bg:"from-emerald-100 to-teal-100",  border:"border-emerald-200", text:"text-emerald-800" },
+              { emoji:"🎬", label:"Vídeo",      val:compVid,  set:setCompVid,  bg:"from-rose-100 to-pink-100",     border:"border-rose-200",    text:"text-rose-800"    },
+            ].map(({ emoji, label, val, set, bg, border, text }) => (
+              <div key={label} className={cn("flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-3 shadow-sm", bg, border)}>
+                <span className="text-xl">{emoji}</span>
+                <span className={cn("text-[10px] font-black uppercase tracking-wide", text)}>{label}</span>
+                <div className="flex items-center gap-1">
+                  <input type="text" inputMode="numeric" value={val} onChange={e => set(e.target.value)} placeholder="—"
+                    className={cn("w-14 rounded-xl border bg-white/80 px-1 py-1 text-center text-sm font-black outline-none focus:bg-white", border, text)} />
+                  <span className="text-[10px] font-bold text-slate-400">min</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      {/* ── Bloques de entrenamiento ── */}
-      <TrainingBlock title="Calentamiento" options={WARMUP_OPTIONS} values={warmupRows} setValues={setWarmupRows} wrapperClass="border-2 border-amber-400 bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 ring-amber-200" lineClass="bg-gradient-to-r from-amber-50 to-orange-50" accent="border-amber-300" summaryClass="bg-gradient-to-r from-amber-300 to-orange-300 text-amber-950" />
-      <TrainingBlock title="Parte principal" options={MAIN_TASK_OPTIONS} values={mainRows} setValues={setMainRows} wrapperClass="border-2 border-emerald-400 bg-gradient-to-br from-emerald-100 via-green-50 to-teal-100 ring-emerald-200" lineClass="bg-gradient-to-r from-emerald-50 to-teal-50" accent="border-emerald-300" summaryClass="bg-gradient-to-r from-emerald-300 to-teal-300 text-emerald-950" />
-      <TrainingBlock title="Vuelta a la calma" options={COOLDOWN_OPTIONS} values={cooldownRows} setValues={setCooldownRows} wrapperClass="border-2 border-sky-400 bg-gradient-to-br from-sky-100 via-blue-50 to-cyan-100 ring-sky-200" lineClass="bg-gradient-to-r from-sky-50 to-cyan-50" accent="border-sky-300" summaryClass="bg-gradient-to-r from-sky-300 to-cyan-300 text-sky-950" />
+      </div>{/* fin 3 columnas */}
 
+      {/* ── Resumen de carga — antes del calentamiento ── */}
       <Card className="p-5">
         <SectionTitle title="Resumen de carga de la sesion" subtitle="Totales automaticos de toda la sesion." />
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -3161,6 +3059,11 @@ function TrainingSessionPanel({ onSaveTraining }) {
           <div className="rounded-3xl bg-cyan-50 p-5 text-center"><p className="text-xs font-black uppercase tracking-wide text-cyan-600">Minutaje real</p><p className="mt-2 text-3xl font-black text-cyan-950">{globalSummary.real}'</p></div>
         </div>
       </Card>
+
+      {/* ── Bloques de entrenamiento ── */}
+      <TrainingBlock title="Calentamiento" options={WARMUP_OPTIONS} values={warmupRows} setValues={setWarmupRows} wrapperClass="border-2 border-amber-400 bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 ring-amber-200" lineClass="bg-gradient-to-r from-amber-50 to-orange-50" accent="border-amber-300" summaryClass="bg-gradient-to-r from-amber-300 to-orange-300 text-amber-950" />
+      <TrainingBlock title="Parte principal" options={MAIN_TASK_OPTIONS} values={mainRows} setValues={setMainRows} wrapperClass="border-2 border-emerald-400 bg-gradient-to-br from-emerald-100 via-green-50 to-teal-100 ring-emerald-200" lineClass="bg-gradient-to-r from-emerald-50 to-teal-50" accent="border-emerald-300" summaryClass="bg-gradient-to-r from-emerald-300 to-teal-300 text-emerald-950" />
+      <TrainingBlock title="Vuelta a la calma" options={COOLDOWN_OPTIONS} values={cooldownRows} setValues={setCooldownRows} wrapperClass="border-2 border-sky-400 bg-gradient-to-br from-sky-100 via-blue-50 to-cyan-100 ring-sky-200" lineClass="bg-gradient-to-r from-sky-50 to-cyan-50" accent="border-sky-300" summaryClass="bg-gradient-to-r from-sky-300 to-cyan-300 text-sky-950" />
 
       <MetricByTasksDashboard title="Minutaje por partes y tareas" subtitle="Minutos reales por bloque y tarea." warmupTasks={warmupRows} mainTasks={mainRows} cooldownTasks={cooldownRows} metric="time" />
       <MetricByTasksDashboard title="Carga por tareas" subtitle="Donde se concentra la carga en la sesion." warmupTasks={warmupRows} mainTasks={mainRows} cooldownTasks={cooldownRows} metric="load" />
