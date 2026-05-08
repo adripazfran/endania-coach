@@ -40,12 +40,7 @@ const NAV_GROUPS = [
     title: "PARTIDO OFFLINE", main: "offline",
     titleBg: "bg-red-700 hover:bg-lime-700", itemBg: "bg-red-700/90 hover:bg-lime-700",
     activeBg: "from-red-500 to-rose-800", accent: "from-red-400 to-rose-700",
-    items: [
-      { label: "Analisis video", icon: "▶", main: "offline", sub: "Analisis video" },
-      { label: "Ficha scouting", icon: "▣", main: "offline", sub: "Ficha scouting" },
-      { label: "Prepartido", icon: "⚑", main: "offline", sub: "Prepartido" },
-      { label: "Recomendacion IA", icon: "◎", main: "offline", sub: "Recomendacion IA" },
-    ],
+    items: [],
   },
   {
     title: "PARTIDO LIVE", main: "live",
@@ -4573,10 +4568,29 @@ export default function App() {
 
             <ErrorBoundary>
               {mainTab === "offline" && (
-                <div className="space-y-6">
-                  {offlineTab === "Analisis video" && <OfflineVideoPanel consignas={consignas} setConsignas={setConsignas} fileName={fileName} setFileName={setFileName} progress={progress} setProgress={setProgress} focus={focus} setFocus={setFocus} />}
-                  {offlineTab === "Ficha scouting" && <ScoutingPanel matches={seasonMatches} scoutMatchId={scoutMatchId} setScoutMatchId={setScoutMatchId} saveScouting={saveScouting} />}
-                  {offlineTab === "Prepartido" && <PreMatchPanel teams={seasonTeams} />}
+                <div className="space-y-5">
+                  {/* ── 4 Tabs ── */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { key: "Analisis video",   label: "▶ Análisis vídeo"   },
+                      { key: "Ficha scouting",   label: "▣ Ficha scouting"   },
+                      { key: "Prepartido",       label: "⚑ Prepartido"       },
+                      { key: "Recomendacion IA", label: "◎ Recomendación IA" },
+                    ].map((v) => (
+                      <button key={v.key} type="button" onClick={() => setOfflineTab(v.key)}
+                        className={cn(
+                          "rounded-2xl py-3 text-sm font-black transition-all",
+                          offlineTab === v.key
+                            ? "bg-gradient-to-br from-red-500 to-rose-700 text-white shadow-md"
+                            : "border border-red-200 bg-white/80 text-slate-600 hover:border-red-400 hover:bg-red-50"
+                        )}>
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                  {offlineTab === "Analisis video"   && <OfflineVideoPanel consignas={consignas} setConsignas={setConsignas} fileName={fileName} setFileName={setFileName} progress={progress} setProgress={setProgress} focus={focus} setFocus={setFocus} />}
+                  {offlineTab === "Ficha scouting"   && <ScoutingPanel matches={seasonMatches} scoutMatchId={scoutMatchId} setScoutMatchId={setScoutMatchId} saveScouting={saveScouting} />}
+                  {offlineTab === "Prepartido"       && <PreMatchPanel teams={seasonTeams} />}
                   {offlineTab === "Recomendacion IA" && <RecommendationPanel />}
                 </div>
               )}
