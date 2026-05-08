@@ -2080,6 +2080,8 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
 }
 
 function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSessionGoals, sessionProgress, setSessionProgress }) {
+  const [analysisMode, setAnalysisMode] = useState("pdf"); // "pdf" | "video"
+
   const hasFile    = Boolean(sessionFile);
   const hasGoals   = sessionGoals.trim().length > 8;
   const analysisReady = hasFile && hasGoals;
@@ -2152,8 +2154,65 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
   const radarPath = radarPts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
   const gridLevels = [0.25, 0.5, 0.75, 1];
 
+  // ── Mock vídeo data (borrador) ──
+  const VIDEO_MOCK = {
+    date:"2026-05-06", md:"MD-3", title:"Ataque posicional",
+    videoFile:"sesion_MD3_06mayo.mp4", duracion:"1h 06min",
+    clips:[
+      { t:"04:32", tipo:"✅ Buena ejecución", desc:"Combinación interior-pivot con llegada de ala al 2º palo. Automatismo correcto.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
+      { t:"11:18", tipo:"⚠️ Error táctico",   desc:"Portera tarde en incorporación ofensiva tras recuperación — tardó 3seg de más.", color:"bg-amber-50 border-amber-300 text-amber-900" },
+      { t:"19:45", tipo:"✅ Pressing",         desc:"Recuperación en 4seg tras pérdida. Las 4 jugadoras activaron pressing coordinado.", color:"bg-emerald-50 border-emerald-300 text-emerald-900" },
+      { t:"27:02", tipo:"❌ Posicionamiento",  desc:"Ala derecha sin desmarque en superioridad 3x2. Zona de finalización vacía.", color:"bg-rose-50 border-rose-300 text-rose-900" },
+      { t:"38:50", tipo:"💡 Destacado",        desc:"ABP córner a 2º palo perfectamente ejecutada — repasar en sala como referencia.", color:"bg-sky-50 border-sky-300 text-sky-900" },
+      { t:"51:14", tipo:"⚠️ Intensidad",       desc:"Bajada de intensidad perceptible en las 3 jugadoras del quinteto inicial.", color:"bg-amber-50 border-amber-300 text-amber-900" },
+    ],
+    zonas:[
+      { zona:"Zona ofensiva central",  pct:38, color:"#3b82f6" },
+      { zona:"Banda derecha",          pct:24, color:"#10b981" },
+      { zona:"Banda izquierda",        pct:18, color:"#8b5cf6" },
+      { zona:"Zona defensiva",         pct:12, color:"#f97316" },
+      { zona:"Transición media",       pct:8,  color:"#94a3b8" },
+    ],
+    realVsPlan:[
+      { label:"Tiempo efectivo",  plan:53, real:49, unit:"min" },
+      { label:"Repeticiones ABP", plan:8,  real:5,  unit:"rep" },
+      { label:"Acciones pivot",   plan:20, real:17, unit:"acc" },
+      { label:"RPE medio",        plan:5.8,real:6.3,unit:"" },
+    ],
+    jugadoras:[
+      { name:"Paula",   obs:"Distribución correcta, 2 salidas largas fallidas en el 1er bloque.",       nivel:"Bien",    color:"bg-emerald-100 text-emerald-800" },
+      { name:"Noa",     obs:"Posicionamiento en bloque defensivo impecable. Referencia para el equipo.", nivel:"Muy bien",color:"bg-blue-100 text-blue-800" },
+      { name:"Lara",    obs:"Llegada al 2º palo inconsistente — solo 2/5 correctas. Trabajar timing.",  nivel:"Mejorar", color:"bg-amber-100 text-amber-800" },
+      { name:"Iria",    obs:"Pérdida de balón en salida de presión x3. Necesita más automatismo.",      nivel:"Mejorar", color:"bg-rose-100 text-rose-800" },
+      { name:"Sara",    obs:"Excelente en pressing alto y recuperación rápida. Liderazgo claro.",        nivel:"Muy bien",color:"bg-blue-100 text-blue-800" },
+    ],
+    recomendacion:"El vídeo confirma que el automatismo interior-pivot existe pero se activa tarde. Para MD-2: repasar el clip 04:32 en sala (2min), reducir la tarea de movilidad inicial y añadir una repetición de ABP córner ya que en vídeo solo se ejecutaron 5 de las 8 planificadas.",
+  };
+
   return (
     <div className="space-y-5">
+
+      {/* ── SUB-TABS PDF / VÍDEO ── */}
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { key:"pdf",   label:"📄 Análisis PDF / Foto" },
+          { key:"video", label:"🎬 Análisis de vídeo"   },
+        ].map(v => (
+          <button key={v.key} onClick={() => setAnalysisMode(v.key)}
+            className={cn(
+              "rounded-2xl py-2.5 text-sm font-black transition-all",
+              analysisMode === v.key
+                ? "bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-md"
+                : "border border-sky-200 bg-white/80 text-slate-600 hover:bg-sky-50"
+            )}>
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ════════════════════════════════════════ PDF ══ */}
+      {analysisMode === "pdf" && (
+      <div className="space-y-5">
       {/* ── INPUT CARD ── */}
       <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 p-6 text-white shadow-lg">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -2388,6 +2447,186 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
         <p className="text-[10px] font-black uppercase tracking-widest text-blue-200 mb-2">🤖 Recomendación para la siguiente sesión</p>
         <p className="text-sm leading-6 text-white/90">{MOCK.recomendacion}</p>
       </div>
+      </div>
+      )}
+
+      {/* ════════════════════════════════════════ VÍDEO ══ */}
+      {analysisMode === "video" && (
+      <div className="space-y-5">
+
+        {/* ── INPUT VÍDEO ── */}
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-purple-700 to-indigo-800 p-6 text-white shadow-lg">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-300">Análisis de vídeo</p>
+              <h2 className="mt-0.5 text-2xl font-black">Sube el vídeo de la sesión</h2>
+              <p className="mt-1 text-sm text-white/60">Vídeo de entrenamiento → timestamps, ejecución real, comparativa vs plan</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="cursor-pointer rounded-2xl border border-white/25 bg-white/15 px-4 py-2.5 text-sm font-black transition hover:bg-white/25">
+                🎬 Subir vídeo
+                <input type="file" accept="video/*" className="hidden" />
+              </label>
+              <span className="text-sm font-bold text-white/50">Ningún archivo</span>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {[{l:"Vídeo",v:"—"},{l:"Duración",v:"—"},{l:"Clips marcados",v:"0"}].map(({l,v})=>(
+              <div key={l} className="rounded-xl bg-white/10 px-3 py-1.5 text-center">
+                <p className="text-[8px] font-black uppercase tracking-wider text-white/50">{l}</p>
+                <p className="text-sm font-black text-white">{v}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── BORRADOR VÍDEO ── */}
+        <div className="rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50 px-4 py-2.5 text-center">
+          <p className="text-xs font-black text-violet-600">🎬 BORRADOR — así se vería el análisis una vez subido el vídeo</p>
+        </div>
+
+        {/* ── CABECERA ── */}
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg bg-orange-500 px-3 py-1 text-[11px] font-black text-white">{VIDEO_MOCK.md}</span>
+                <span className="text-[10px] font-bold text-slate-400">Miércoles · {VIDEO_MOCK.date.slice(5).replace("-","/")}</span>
+              </div>
+              <h3 className="mt-1 text-2xl font-black text-white">{VIDEO_MOCK.title}</h3>
+            </div>
+            <div className="flex gap-4">
+              <div className="text-center">
+                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Archivo</p>
+                <p className="text-xs font-black text-violet-400">{VIDEO_MOCK.videoFile}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Duración</p>
+                <p className="text-lg font-black text-cyan-400">{VIDEO_MOCK.duracion}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── REAL VS PLANIFICADO ── */}
+        <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+          <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">⚖️ Real vs planificado</p>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {VIDEO_MOCK.realVsPlan.map(r => {
+              const diff = parseFloat((r.real - r.plan).toFixed(1));
+              const ok = Math.abs(diff) / r.plan < 0.1;
+              const col = diff > 0
+                ? (r.label === "RPE medio" ? "text-rose-600" : "text-emerald-600")
+                : "text-amber-600";
+              return (
+                <div key={r.label} className="rounded-2xl bg-slate-50 p-4 text-center">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">{r.label}</p>
+                  <div className="mt-1 flex items-end justify-center gap-2">
+                    <div className="text-center">
+                      <p className="text-[8px] text-slate-400">Plan</p>
+                      <p className="text-lg font-black text-slate-500">{r.plan}{r.unit}</p>
+                    </div>
+                    <span className="mb-1 text-slate-300">→</span>
+                    <div className="text-center">
+                      <p className="text-[8px] text-slate-400">Real</p>
+                      <p className="text-2xl font-black text-slate-900">{r.real}{r.unit}</p>
+                    </div>
+                  </div>
+                  <p className={cn("mt-1 text-xs font-black", col)}>
+                    {diff > 0 ? "+" : ""}{diff}{r.unit} {ok ? "✓" : ""}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── CLIPS DESTACADOS ── */}
+        <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+          <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">🎯 Clips destacados</p>
+          <div className="space-y-2">
+            {VIDEO_MOCK.clips.map((c,i) => (
+              <div key={i} className={cn("flex items-start gap-3 rounded-2xl border px-4 py-3 text-xs leading-5", c.color)}>
+                <span className="shrink-0 rounded-lg bg-slate-900 px-2 py-0.5 font-black text-white tabular-nums">{c.t}</span>
+                <div>
+                  <span className="font-black">{c.tipo} · </span>
+                  <span>{c.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── ZONAS DE JUEGO + OBSERVACIONES INDIVIDUALES ── */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+          {/* Zonas */}
+          <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+            <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">🗺️ Zonas de juego predominantes</p>
+            {/* Mini campo SVG */}
+            <svg viewBox="0 0 200 130" className="w-full mb-4 rounded-xl border border-slate-100 bg-emerald-700">
+              {/* Campo */}
+              <rect x="5" y="5" width="190" height="120" fill="none" stroke="#16a34a" strokeWidth="1.5" rx="4"/>
+              <line x1="100" y1="5" x2="100" y2="125" stroke="#16a34a" strokeWidth="1" strokeDasharray="4,3"/>
+              <circle cx="100" cy="65" r="15" fill="none" stroke="#16a34a" strokeWidth="1"/>
+              {/* Zona ofensiva central */}
+              <rect x="60" y="5" width="80" height="55" fill="#3b82f6" fillOpacity="0.5" rx="3"/>
+              {/* Banda derecha */}
+              <rect x="145" y="5" width="50" height="120" fill="#10b981" fillOpacity="0.35" rx="3"/>
+              {/* Banda izquierda */}
+              <rect x="5" y="5" width="50" height="120" fill="#8b5cf6" fillOpacity="0.30" rx="3"/>
+              {/* Zona defensiva */}
+              <rect x="60" y="75" width="80" height="55" fill="#f97316" fillOpacity="0.30" rx="3"/>
+              {/* Porterías */}
+              <rect x="80" y="2" width="40" height="8" fill="none" stroke="#fff" strokeWidth="1.5" rx="1"/>
+              <rect x="80" y="120" width="40" height="8" fill="none" stroke="#fff" strokeWidth="1.5" rx="1"/>
+            </svg>
+            <div className="space-y-2">
+              {VIDEO_MOCK.zonas.map(z => (
+                <div key={z.zona}>
+                  <div className="mb-0.5 flex justify-between text-xs font-bold">
+                    <span style={{color:z.color}}>{z.zona}</span>
+                    <span className="text-slate-400">{z.pct}%</span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full" style={{width:`${z.pct}%`, background:z.color}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Observaciones individuales */}
+          <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
+            <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">👤 Observaciones individuales</p>
+            <div className="space-y-3">
+              {VIDEO_MOCK.jugadoras.map(j => (
+                <div key={j.name} className="flex items-start gap-3 rounded-2xl bg-slate-50 px-3 py-2.5">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-[10px] font-black text-slate-600">
+                    {j.name.slice(0,2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-black text-slate-800">{j.name}</span>
+                      <span className={cn("rounded-full px-2 py-0.5 text-[8px] font-black", j.color)}>{j.nivel}</span>
+                    </div>
+                    <p className="mt-0.5 text-[11px] leading-4 text-slate-500">{j.obs}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── RECOMENDACIÓN (desde vídeo) ── */}
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 to-indigo-700 p-5 text-white shadow-lg">
+          <p className="text-[10px] font-black uppercase tracking-widest text-violet-200 mb-2">🤖 Recomendación basada en el vídeo</p>
+          <p className="text-sm leading-6 text-white/90">{VIDEO_MOCK.recomendacion}</p>
+        </div>
+
+      </div>
+      )} {/* fin analysisMode === "video" */}
+
     </div>
   );
 }
