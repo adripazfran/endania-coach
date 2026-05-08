@@ -2151,6 +2151,10 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
 function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals, setSessionGoals, sessionProgress, setSessionProgress }) {
   const analysisMode = mode; // "pdf" | "video" — controlled by outer tabs
 
+  // Local state for the 3 input bubbles
+  const [pdfContenidos,     setPdfContenidos]     = useState("");
+  const [pdfCondicionantes, setPdfCondicionantes] = useState("");
+
   const hasFile    = Boolean(sessionFile);
   const hasGoals   = sessionGoals.trim().length > 8;
   const analysisReady = hasFile && hasGoals;
@@ -2278,13 +2282,13 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
       {/* ════════════════════════════════════════ PDF ══ */}
       {analysisMode === "pdf" && (
       <div className="space-y-5">
-      {/* ── INPUT CARD ── */}
+      {/* ── INPUT: 3 bocadillos + subir archivo ── */}
       <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 via-blue-700 to-indigo-800 p-6 text-white shadow-lg">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-200">Análisis de sesión</p>
-            <h2 className="mt-0.5 text-2xl font-black">Sube la sesión y define los objetivos</h2>
-            <p className="mt-1 text-sm text-white/70">Foto, PDF o plan de sesión + objetivos escritos → análisis automático</p>
+            <h2 className="mt-0.5 text-2xl font-black">Describe la sesión para el análisis IA</h2>
+            <p className="mt-1 text-sm text-white/70">Rellena los 3 bocadillos · sube el archivo · pulsa Analizar</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="cursor-pointer rounded-2xl border border-white/25 bg-white/15 px-4 py-2.5 text-sm font-black transition hover:bg-white/25">
@@ -2295,28 +2299,65 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
             <span className="text-sm font-bold text-white/60">{sessionFile || "Ningún archivo"}</span>
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto]">
-          <textarea value={sessionGoals} onChange={(e) => setSessionGoals(e.target.value)}
-            placeholder="Describe los objetivos de la sesión: p.ej. mejorar salida de presión, conectar con pivot, finalizar con llegada de ala..."
-            className="min-h-[72px] w-full resize-none rounded-2xl bg-white/10 p-3 text-sm font-semibold text-white placeholder-white/40 outline-none focus:bg-white/20 border border-white/20" />
+
+        {/* 3 bocadillos */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {[
+            {
+              icon: "🎯", title: "Objetivos de la sesión",
+              placeholder: "Ej: Mejorar salida de presión, conectar juego interior-pivot, finalizar con llegada de ala al 2º palo...",
+              value: sessionGoals, onChange: setSessionGoals,
+              border: "border-sky-400/60", bg: "bg-sky-500/20",
+            },
+            {
+              icon: "📚", title: "Contenidos",
+              placeholder: "Ej: Rondo 5x2, situación 3x2 en transición, ABP córner 2º palo, pressing coordinado 4-0...",
+              value: pdfContenidos, onChange: setPdfContenidos,
+              border: "border-indigo-400/60", bg: "bg-indigo-500/20",
+            },
+            {
+              icon: "⚙️", title: "Condicionantes y necesidades",
+              placeholder: "Ej: Pabellón pequeño, 10 jugadoras disponibles, semana de 3 partidos, jugadoras con carga alta...",
+              value: pdfCondicionantes, onChange: setPdfCondicionantes,
+              border: "border-violet-400/60", bg: "bg-violet-500/20",
+            },
+          ].map((b, idx) => (
+            <div key={idx} className={cn("relative rounded-2xl border-2 p-4", b.border, b.bg)}>
+              {/* Rabillo del bocadillo */}
+              <div className={cn("absolute -top-2 left-5 h-3 w-3 rotate-45 border-l-2 border-t-2", b.border)} style={{background:"rgba(255,255,255,0.12)"}} />
+              <p className="mb-2 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-white/80">
+                <span>{b.icon}</span>{b.title}
+              </p>
+              <textarea
+                value={b.value}
+                onChange={e => b.onChange(e.target.value)}
+                placeholder={b.placeholder}
+                rows={3}
+                className="w-full resize-none rounded-xl bg-white/10 p-2.5 text-sm font-semibold text-white placeholder-white/35 outline-none focus:bg-white/20 border border-white/15"
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="flex gap-3">
+            {[{l:"Archivo",v:hasFile?"✅":"—"},{l:"Objetivos",v:hasGoals?"✅":"—"},{l:"Análisis",v:`${sessionProgress}%`}].map(({l,v})=>(
+              <div key={l} className="rounded-xl bg-white/10 px-3 py-1.5 text-center">
+                <p className="text-[8px] font-black uppercase tracking-wider text-white/50">{l}</p>
+                <p className="text-sm font-black text-white">{v}</p>
+              </div>
+            ))}
+          </div>
           <button type="button"
             onClick={() => setSessionProgress((v) => Math.min(100, analysisReady ? 100 : v + 15))}
             className={cn(
-              "self-stretch rounded-2xl px-6 text-sm font-black transition",
+              "rounded-2xl px-6 py-3 text-sm font-black transition",
               analysisReady
                 ? "bg-white text-blue-700 shadow-lg hover:bg-blue-50"
                 : "bg-white/20 text-white/60 cursor-not-allowed"
             )}>
             {analyzed ? "✅ Analizado" : "🔍 Analizar"}
           </button>
-        </div>
-        <div className="mt-3 flex gap-3">
-          {[{l:"Archivo",v:hasFile?"✅":"—"},{l:"Objetivos",v:hasGoals?"✅":"—"},{l:"Análisis",v:`${sessionProgress}%`}].map(({l,v})=>(
-            <div key={l} className="rounded-xl bg-white/10 px-3 py-1.5 text-center">
-              <p className="text-[8px] font-black uppercase tracking-wider text-white/50">{l}</p>
-              <p className="text-sm font-black text-white">{v}</p>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -2734,6 +2775,17 @@ function TrainingSessionPanel({ onSaveTraining }) {
   const [compPort, setCompPort] = useState("");
   const [compVid,  setCompVid]  = useState("");
 
+  // ─── Info sesión ─────────────────────────────────────────────────────
+  const [infoJugadoras,  setInfoJugadoras]  = useState("");
+  const [infoPorteras,   setInfoPorteras]   = useState("");
+  const [infoLesionadas, setInfoLesionadas] = useState("");
+  const [infoPabellon,   setInfoPabellon]   = useState("");
+
+  // ─── Objetivos ───────────────────────────────────────────────────────
+  const [objGenerales,  setObjGenerales]  = useState("");
+  const [objEspecificos,setObjEspecificos]= useState("");
+  const [contenidos,    setContenidos]    = useState("");
+
   const sessionDate = dayTypes[selectedDayIdx]?.date || todayStr;
 
   const TYPE_STYLE = {
@@ -2934,11 +2986,6 @@ function TrainingSessionPanel({ onSaveTraining }) {
               </div>
             ))}
           </div>
-          {(compGym || compPrev || compPort || compVid) && (
-            <p className="mt-3 text-center text-xs font-bold text-violet-500">
-              Total: {[compGym, compPrev, compPort, compVid].reduce((s, v) => s + (parseInt(v) || 0), 0)} min
-            </p>
-          )}
         </div>
 
         {/* Guardar sesión */}
@@ -3040,10 +3087,70 @@ function TrainingSessionPanel({ onSaveTraining }) {
 
       </div>{/* fin grid complementario+guardar */}
 
+      {/* ── Info sesión + Objetivos ── */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+
+        {/* Info sesión */}
+        <div className="rounded-3xl border-2 border-cyan-200 bg-gradient-to-br from-cyan-50 via-sky-50 to-teal-50 p-5 shadow-md">
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <div className="h-px flex-1 bg-cyan-200" />
+            <p className="rounded-2xl border border-cyan-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-cyan-700 shadow-sm">📋 Info sesión</p>
+            <div className="h-px flex-1 bg-cyan-200" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { emoji: "👥", label: "Jugadoras",  val: infoJugadoras,  set: setInfoJugadoras,  bg: "from-sky-100 to-cyan-100",     border: "border-sky-200",     text: "text-sky-800",     mode: "numeric", unit: null },
+              { emoji: "🧤", label: "Porteras",   val: infoPorteras,   set: setInfoPorteras,   bg: "from-teal-100 to-emerald-100", border: "border-teal-200",    text: "text-teal-800",    mode: "numeric", unit: null },
+              { emoji: "🩹", label: "Lesionadas", val: infoLesionadas, set: setInfoLesionadas, bg: "from-rose-100 to-red-100",     border: "border-rose-200",    text: "text-rose-800",    mode: "numeric", unit: null },
+              { emoji: "🏟️", label: "Pabellón",   val: infoPabellon,   set: setInfoPabellon,   bg: "from-amber-100 to-yellow-100", border: "border-amber-200",   text: "text-amber-800",   mode: "text",    unit: null },
+            ].map(({ emoji, label, val, set, bg, border, text, mode }) => (
+              <div key={label} className={cn("flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-4 shadow-sm", bg, border)}>
+                <span className="text-2xl">{emoji}</span>
+                <span className={cn("text-xs font-black uppercase tracking-wide", text)}>{label}</span>
+                <input
+                  type="text" inputMode={mode}
+                  value={val}
+                  onChange={e => set(e.target.value)}
+                  placeholder="—"
+                  className={cn("w-full rounded-xl border bg-white/80 px-2 py-1.5 text-center text-sm font-black outline-none focus:bg-white", border, text)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Objetivos y contenidos */}
+        <div className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 p-5 shadow-md">
+          <div className="mb-4 flex items-center justify-center gap-2">
+            <div className="h-px flex-1 bg-emerald-200" />
+            <p className="rounded-2xl border border-emerald-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-emerald-700 shadow-sm">🎯 Objetivos y contenidos</p>
+            <div className="h-px flex-1 bg-emerald-200" />
+          </div>
+          <div className="space-y-3">
+            {[
+              { label: "Objetivos generales",   val: objGenerales,   set: setObjGenerales,   placeholder: "Ej: Mejorar la salida de presión, desarrollar el juego con pivot...", color: "border-emerald-300 focus:border-emerald-500 bg-emerald-50/60" },
+              { label: "Objetivos específicos",  val: objEspecificos, set: setObjEspecificos, placeholder: "Ej: Conectar en 3 toques desde defensa, llegar al 2º palo en córner...", color: "border-teal-300 focus:border-teal-500 bg-teal-50/60" },
+              { label: "Contenidos",             val: contenidos,     set: setContenidos,     placeholder: "Ej: Rondo 5x2, situación 3x2, ABP córner con 2º palo...", color: "border-green-300 focus:border-green-500 bg-green-50/60" },
+            ].map(({ label, val, set, placeholder, color }) => (
+              <div key={label}>
+                <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</p>
+                <textarea
+                  value={val} onChange={e => set(e.target.value)}
+                  placeholder={placeholder}
+                  rows={2}
+                  className={cn("w-full resize-none rounded-2xl border px-3 py-2.5 text-sm text-slate-700 outline-none transition", color)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
       {/* ── Bloques de entrenamiento ── */}
-      <TrainingBlock title="Calentamiento" options={WARMUP_OPTIONS} values={warmupRows} setValues={setWarmupRows} wrapperClass="border-2 border-amber-300 bg-amber-100/80 ring-amber-200" lineClass="bg-white" accent="border-amber-200" summaryClass="bg-amber-200 text-amber-950" />
-      <TrainingBlock title="Parte principal" options={MAIN_TASK_OPTIONS} values={mainRows} setValues={setMainRows} wrapperClass="border-2 border-emerald-300 bg-emerald-100/80 ring-emerald-200" lineClass="bg-white" accent="border-emerald-200" summaryClass="bg-emerald-200 text-emerald-950" />
-      <TrainingBlock title="Vuelta a la calma" options={COOLDOWN_OPTIONS} values={cooldownRows} setValues={setCooldownRows} wrapperClass="border-2 border-sky-300 bg-sky-100/80 ring-sky-200" lineClass="bg-white" accent="border-sky-200" summaryClass="bg-sky-200 text-sky-950" />
+      <TrainingBlock title="Calentamiento" options={WARMUP_OPTIONS} values={warmupRows} setValues={setWarmupRows} wrapperClass="border-2 border-amber-400 bg-gradient-to-br from-amber-100 via-orange-50 to-yellow-100 ring-amber-200" lineClass="bg-gradient-to-r from-amber-50 to-orange-50" accent="border-amber-300" summaryClass="bg-gradient-to-r from-amber-300 to-orange-300 text-amber-950" />
+      <TrainingBlock title="Parte principal" options={MAIN_TASK_OPTIONS} values={mainRows} setValues={setMainRows} wrapperClass="border-2 border-emerald-400 bg-gradient-to-br from-emerald-100 via-green-50 to-teal-100 ring-emerald-200" lineClass="bg-gradient-to-r from-emerald-50 to-teal-50" accent="border-emerald-300" summaryClass="bg-gradient-to-r from-emerald-300 to-teal-300 text-emerald-950" />
+      <TrainingBlock title="Vuelta a la calma" options={COOLDOWN_OPTIONS} values={cooldownRows} setValues={setCooldownRows} wrapperClass="border-2 border-sky-400 bg-gradient-to-br from-sky-100 via-blue-50 to-cyan-100 ring-sky-200" lineClass="bg-gradient-to-r from-sky-50 to-cyan-50" accent="border-sky-300" summaryClass="bg-gradient-to-r from-sky-300 to-cyan-300 text-sky-950" />
 
       <Card className="p-5">
         <SectionTitle title="Resumen de carga de la sesion" subtitle="Totales automaticos de toda la sesion." />
