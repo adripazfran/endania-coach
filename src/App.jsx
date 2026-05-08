@@ -2393,9 +2393,53 @@ function SessionAnalysisPanel({ sessionFile, setSessionFile, sessionGoals, setSe
 }
 
 function TrainingSessionPanel({ onSaveTraining }) {
-  const [sessionDate, setSessionDate] = useState(new Date().toISOString().slice(0, 10));
-  const [saveMessage, setSaveMessage] = useState("");
-  const [warmupRows, setWarmupRows] = useState([
+  // ─── Semana actual ───────────────────────────────────────────────────
+  const today    = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const DOW_NAMES = ["L", "M", "X", "J", "V", "S", "D"];
+  const DAY_FULL  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+  const weekDays = (() => {
+    const dow = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((dow + 6) % 7));
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d;
+    });
+  })();
+
+  const todayIdx = weekDays.findIndex(d => d.toISOString().slice(0, 10) === todayStr);
+
+  const [dayTypes, setDayTypes] = useState(() =>
+    weekDays.map((d, i) => ({
+      date: d.toISOString().slice(0, 10),
+      type: i >= 5 ? "descanso" : "sesion",
+    }))
+  );
+  const [selectedDayIdx, setSelectedDayIdx] = useState(todayIdx >= 0 ? todayIdx : 0);
+  const [microcycleMsg, setMicrocycleMsg] = useState("");
+  const [saveMessage,   setSaveMessage]   = useState("");
+
+  const sessionDate = dayTypes[selectedDayIdx]?.date || todayStr;
+
+  const TYPE_STYLE = {
+    sesion:   { bg: "bg-sky-500",   text: "text-white", label: "Sesión",   emoji: "🏋️" },
+    partido:  { bg: "bg-rose-500",  text: "text-white", label: "Partido",  emoji: "⚽" },
+    descanso: { bg: "bg-slate-500", text: "text-white", label: "Descanso", emoji: "💤" },
+  };
+
+  const updateDayType = (idx, val) =>
+    setDayTypes(prev => prev.map((d, i) => i === idx ? { ...d, type: val } : d));
+
+  const actualizarMicrociclo = () => {
+    setMicrocycleMsg("✅ Microciclo actualizado");
+    setTimeout(() => setMicrocycleMsg(""), 3000);
+  };
+
+  // ─── Filas de entrenamiento ──────────────────────────────────────────
+  const [warmupRows,   setWarmupRows]   = useState([
     buildTask("Movilidad", 10, 10, 6, 6, 2),
     buildTask("Tecnica individual", 20, 10, 8, 9, 3),
     buildTask("Preventivo", 10, 5, 7, 7, 2),
@@ -2412,38 +2456,98 @@ function TrainingSessionPanel({ onSaveTraining }) {
     buildTask("Roller", 5, 5, 4, 4, 1),
   ]);
 
-  const allRows = [...warmupRows, ...mainRows, ...cooldownRows];
+  const allRows      = [...warmupRows, ...mainRows, ...cooldownRows];
   const globalSummary = blockSummary(allRows);
 
   const saveTraining = () => {
-    const newTraining = { id: Date.now(), date: sessionDate, title: "Sesion de entreno", ua: globalSummary.ua, realMinutes: globalSummary.real, avgRpe: globalSummary.avgRpe };
+    const newTraining = {
+      id: Date.now(), date: sessionDate, title: "Sesion de entreno",
+      ua: globalSummary.ua, realMinutes: globalSummary.real, avgRpe: globalSummary.avgRpe,
+    };
     onSaveTraining(newTraining);
-    setSaveMessage(`Sesion guardada · ${sessionDate}`);
+    setSaveMessage(`✅ Sesión guardada · ${sessionDate}`);
+    setTimeout(() => setSaveMessage(""), 4000);
   };
 
+  const selType = dayTypes[selectedDayIdx]?.type || "sesion";
+  const selSty  = TYPE_STYLE[selType];
+
   return (
-    <div className="space-y-6 text-center">
+    <div className="space-y-6">
+
+      {/* ── Microciclo semanal ── */}
       <Card className="overflow-hidden p-0">
-        <div className="bg-gradient-to-r from-sky-700 via-cyan-600 to-emerald-500 p-6 text-center text-white">
-          <p className="text-xs font-black uppercase tracking-[0.24em] text-white/75">Sesion de entreno</p>
-          <h2 className="mt-1 text-2xl font-black">Registro de tareas y carga</h2>
-          <p className="mt-2 text-sm font-semibold text-white/85">Fecha, guardado de sesion y datos listos para ubicarse en el microciclo semanal.</p>
-          <div className="mx-auto mt-5 grid max-w-2xl grid-cols-1 gap-3 rounded-3xl border border-white/20 bg-white/15 p-4 md:grid-cols-[1fr_auto]">
-            <label className="block text-center">
-              <span className="mb-1 block text-xs font-black uppercase tracking-wide text-white/75">Fecha de la sesion</span>
-              <input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)}
-                className="w-full rounded-2xl border border-white/30 bg-white px-3 py-2 text-center text-sm font-black text-slate-950 outline-none" />
-            </label>
-            <div className="flex flex-col justify-end">
-              <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={saveTraining}>Guardar sesion de entreno</Button>
-            </div>
+        <div className="bg-gradient-to-r from-sky-700 via-cyan-600 to-emerald-500 p-5 text-white">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/70">Planificación semanal</p>
+          <h2 className="mt-0.5 text-xl font-black">Microciclo · Semana actual</h2>
+          <p className="mt-1 text-xs font-semibold text-white/70">Selecciona el tipo de cada día y actualiza el microciclo</p>
+
+          {/* 7 columnas */}
+          <div className="mt-4 grid grid-cols-7 gap-1.5">
+            {weekDays.map((d, i) => {
+              const dStr     = d.toISOString().slice(0, 10);
+              const isToday  = dStr === todayStr;
+              const isSel    = selectedDayIdx === i;
+              const t        = dayTypes[i].type;
+              const sty      = TYPE_STYLE[t];
+              return (
+                <div key={i}
+                  onClick={() => setSelectedDayIdx(i)}
+                  className={cn(
+                    "flex cursor-pointer flex-col items-center gap-1 rounded-2xl border-2 px-1 py-2 transition-all select-none",
+                    isSel  ? "border-white bg-white/25 shadow-lg scale-[1.05]"
+                           : "border-white/20 bg-white/10 hover:bg-white/18",
+                    isToday && !isSel && "border-yellow-300"
+                  )}>
+                  {/* Dropdown ENCIMA del día */}
+                  <select
+                    value={t}
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => { e.stopPropagation(); updateDayType(i, e.target.value); }}
+                    className="w-full cursor-pointer rounded-lg border-none bg-white/20 py-0.5 text-center text-[8px] font-black text-white outline-none"
+                  >
+                    <option value="sesion"   className="text-slate-800 font-bold">🏋️ Sesión</option>
+                    <option value="partido"  className="text-slate-800 font-bold">⚽ Partido</option>
+                    <option value="descanso" className="text-slate-800 font-bold">💤 Descanso</option>
+                  </select>
+                  {/* Nombre del día */}
+                  <span className="text-[9px] font-black uppercase tracking-wide text-white/70">{DOW_NAMES[i]}</span>
+                  {/* Número */}
+                  <span className={cn("text-xl font-black leading-none", isToday ? "text-yellow-300" : "text-white")}>{d.getDate()}</span>
+                  {/* Badge tipo */}
+                  <span className={cn("rounded-full px-1.5 py-0.5 text-[8px] font-black", sty.bg, sty.text)}>{sty.emoji}</span>
+                </div>
+              );
+            })}
           </div>
-          {saveMessage && <p className="mt-3 text-sm font-black text-emerald-100">{saveMessage}</p>}
+
+          {/* Fila de estado + botón Actualizar */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-3">
+            <span className="text-sm font-black text-white/80">
+              {DAY_FULL[selectedDayIdx]}{" "}
+              <span className={cn("rounded-lg px-2 py-0.5 text-xs font-black", selSty.bg, selSty.text)}>
+                {selSty.emoji} {selSty.label}
+              </span>
+              <span className="ml-2 text-xs font-bold text-white/60">{sessionDate}</span>
+            </span>
+            <button
+              onClick={actualizarMicrociclo}
+              className="rounded-xl bg-white/20 px-4 py-2 text-xs font-black text-white transition hover:bg-white/30 active:scale-95"
+            >
+              ↻ Actualizar microciclo
+            </button>
+          </div>
+          {microcycleMsg && (
+            <p className="mt-2 text-xs font-black text-emerald-200">{microcycleMsg}</p>
+          )}
         </div>
       </Card>
+
+      {/* ── Bloques de entrenamiento ── */}
       <TrainingBlock title="Calentamiento" options={WARMUP_OPTIONS} values={warmupRows} setValues={setWarmupRows} wrapperClass="border-2 border-amber-300 bg-amber-100/80 ring-amber-200" lineClass="bg-white" accent="border-amber-200" summaryClass="bg-amber-200 text-amber-950" />
       <TrainingBlock title="Parte principal" options={MAIN_TASK_OPTIONS} values={mainRows} setValues={setMainRows} wrapperClass="border-2 border-emerald-300 bg-emerald-100/80 ring-emerald-200" lineClass="bg-white" accent="border-emerald-200" summaryClass="bg-emerald-200 text-emerald-950" />
       <TrainingBlock title="Vuelta a la calma" options={COOLDOWN_OPTIONS} values={cooldownRows} setValues={setCooldownRows} wrapperClass="border-2 border-sky-300 bg-sky-100/80 ring-sky-200" lineClass="bg-white" accent="border-sky-200" summaryClass="bg-sky-200 text-sky-950" />
+
       <Card className="p-5">
         <SectionTitle title="Resumen de carga de la sesion" subtitle="Totales automaticos de toda la sesion." />
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -2453,8 +2557,30 @@ function TrainingSessionPanel({ onSaveTraining }) {
           <div className="rounded-3xl bg-cyan-50 p-5 text-center"><p className="text-xs font-black uppercase tracking-wide text-cyan-600">Minutaje real</p><p className="mt-2 text-3xl font-black text-cyan-950">{globalSummary.real}'</p></div>
         </div>
       </Card>
+
       <MetricByTasksDashboard title="Minutaje por partes y tareas" subtitle="Minutos reales por bloque y tarea." warmupTasks={warmupRows} mainTasks={mainRows} cooldownTasks={cooldownRows} metric="time" />
       <MetricByTasksDashboard title="Carga por tareas" subtitle="Donde se concentra la carga en la sesion." warmupTasks={warmupRows} mainTasks={mainRows} cooldownTasks={cooldownRows} metric="load" />
+
+      {/* ── Guardar sesión ── */}
+      <Card className="p-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Guardar sesión para</p>
+          <p className="text-base font-black text-slate-700">
+            {DAY_FULL[selectedDayIdx]} · {sessionDate}
+            <span className={cn("ml-2 rounded-lg px-2 py-0.5 text-xs font-black", selSty.bg, selSty.text)}>
+              {selSty.emoji} {selSty.label}
+            </span>
+          </p>
+          <button
+            onClick={saveTraining}
+            className="rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 px-10 py-3 text-sm font-black text-white shadow-md transition hover:from-sky-600 hover:to-blue-700 active:scale-95"
+          >
+            💾 Guardar sesión
+          </button>
+          {saveMessage && <p className="text-sm font-black text-emerald-600">{saveMessage}</p>}
+        </div>
+      </Card>
+
     </div>
   );
 }
@@ -4030,7 +4156,7 @@ function DatabasePanel({ teams, players, matches, trainings, dbTeam, setDbTeam, 
       {/* Content */}
       {dbView === "informacion" && <DatabaseInfoView teamName={dbTeam} matches={matches} teams={teams} players={players} />}
       {dbView === "entrenamientos" && <TrainingsDatabasePanel trainings={trainings} matches={matches} teamName={dbTeam} players={players} />}
-      {dbView === "historial" && <HistorialDashboard trainings={trainings} matches={matches} teamName={dbTeam} />}
+      {dbView === "historial" && <HistorialDashboard trainings={trainings} matches={matches} teamName={MY_TEAM} />}
     </div>
   );
 }
