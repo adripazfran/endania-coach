@@ -844,7 +844,7 @@ function Sidebar({ mainTab, offlineTab, liveTab, regTab, dbView, sessionTab, goT
             value={selectedSeason} onChange={(e) => setSelectedSeason(e.target.value)}
             className="w-full rounded-2xl border border-yellow-300/25 bg-blue-900/80 px-3 py-2 text-sm font-black text-yellow-200 outline-none focus:border-yellow-300"
           >
-            {SEASONS.map((s) => <option key={s.label} value={s.label}>{s.label}</option>)}
+            {SEASONS.filter((s) => s.hasData).map((s) => <option key={s.label} value={s.label}>{s.label}</option>)}
           </select>
         </label>
       </div>
