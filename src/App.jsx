@@ -2153,8 +2153,15 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
   const analysisReady = hasFile && hasGoals;
   const analyzed   = sessionProgress >= 100;
 
-  // ── Mock PDF analysis (solo lo que el plan escrito puede dar) ──
-  const MOCK = {
+  // Estado del análisis real con IA
+  const [analyzing,        setAnalyzing]        = useState(false);
+  const [analysisError,    setAnalysisError]    = useState("");
+  const [analysisCost,     setAnalysisCost]     = useState(null);
+  const [analysisProvider, setAnalysisProvider] = useState("");
+  const [analysisFreeTier, setAnalysisFreeTier] = useState(false);
+
+  // ── PDF analysis: arranca con datos de ejemplo, se reemplaza con la respuesta de Claude ──
+  const [MOCK, setMOCK] = useState({
     date:"2026-05-06", md:"MD-3", title:"Ataque posicional",
     jugadoras:12,
     // Objetivos declarados por el entrenador en el documento
@@ -2213,22 +2220,56 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
       comentario:"2 de 3 objetivos declarados están cubiertos por tareas en el plan. El objetivo de finalización con llegada de ala no aparece en ninguna tarea. La coherencia subiría al 95% añadiendo una tarea de finalización de 8-10'.",
     },
     recomendacion:"Antes de ejecutar la sesión: añade una tarea de finalización con llegada de ala (8-10') reduciendo el Rondo inicial a 12'. Eso cubre el 3er objetivo y sube la coherencia plan-objetivos al 95%. La carga sigue dentro del rango MD-3.",
-  };
+  });
 
-  // Medias de MD-3 anteriores (excluyendo la sesión actual)
+  // Sube el PDF a /api/analyze-pdf y reemplaza el análisis con la respuesta de la IA.
+  async function runPdfAnalysis(file) {
+    if (!file) return;
+    setAnalyzing(true);
+    setAnalysisError("");
+    setAnalysisCost(null);
+    setAnalysisProvider("");
+    setAnalysisFreeTier(false);
+    setSessionFile(file.name);
+    setSessionProgress(40);
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("goals", sessionGoals || "");
+      fd.append("condicionantes", pdfCondicionantes || "");
+
+      const res = await fetch("/api/analyze-pdf", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+
+      setMOCK(json.analysis);
+      setAnalysisCost(json.costUsd);
+      setAnalysisProvider(json.provider || "");
+      setAnalysisFreeTier(Boolean(json.freeTier));
+      setSessionProgress(100);
+    } catch (err) {
+      setAnalysisError(err.message || "Error desconocido");
+      setSessionProgress(0);
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  // Medias del mismo tipo de MD anteriores (excluyendo la sesión actual)
   const previousMd3 = useMemo(() => {
-    const md3s = BASE_TRAININGS.filter(t => t.title.startsWith("MD-3") && t.date < MOCK.date);
-    if (md3s.length === 0) return null;
-    const sum = (k) => md3s.reduce((s,t) => s + t[k], 0);
+    const sameMd = BASE_TRAININGS.filter(t => t.title.startsWith(MOCK.md) && t.date < MOCK.date);
+    if (sameMd.length === 0) return null;
+    const sum = (k) => sameMd.reduce((s,t) => s + t[k], 0);
     return {
-      count:           md3s.length,
-      avgUa:           Math.round(sum("ua") / md3s.length),
-      avgRpe:          Math.round((sum("avgRpe") / md3s.length) * 10) / 10,
-      avgRealMin:      Math.round(sum("realMinutes") / md3s.length),
-      avgEffectiveMin: Math.round(sum("effectiveMinutes") / md3s.length),
-      avgAttendance:   Math.round((sum("attendance") / md3s.length) * 10) / 10,
+      count:           sameMd.length,
+      avgUa:           Math.round(sum("ua") / sameMd.length),
+      avgRpe:          Math.round((sum("avgRpe") / sameMd.length) * 10) / 10,
+      avgRealMin:      Math.round(sum("realMinutes") / sameMd.length),
+      avgEffectiveMin: Math.round(sum("effectiveMinutes") / sameMd.length),
+      avgAttendance:   Math.round((sum("attendance") / sameMd.length) * 10) / 10,
     };
-  }, []);
+  }, [MOCK.md, MOCK.date]);
 
   // Mes y día completos en español para la cabecera
   const _d         = new Date(MOCK.date + "T12:00:00");
@@ -2306,22 +2347,22 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
             <h2 className="mt-0.5 text-2xl font-black">Describe la sesión para el análisis IA</h2>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button"
-              onClick={() => setSessionProgress((v) => Math.min(100, analysisReady ? 100 : v + 15))}
-              className={cn(
-                "rounded-2xl px-6 py-2.5 text-sm font-black transition shadow-lg",
-                analysisReady
-                  ? "bg-white text-blue-700 hover:bg-blue-50"
-                  : "bg-white/20 text-white/60 cursor-not-allowed"
-              )}>
-              {analyzed ? "✅ Analizado" : "🔍 Analizar sesión"}
-            </button>
-            <label className="cursor-pointer rounded-2xl border border-white/25 bg-white/15 px-4 py-2.5 text-sm font-black transition hover:bg-white/25">
-              📎 Subir archivo
-              <input type="file" accept="image/*,.pdf" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; setSessionFile(f ? f.name : ""); setSessionProgress(f ? 35 : 0); }} />
+            <label className={cn(
+              "rounded-2xl px-6 py-2.5 text-sm font-black transition shadow-lg",
+              analyzing
+                ? "bg-white/20 text-white/60 cursor-wait"
+                : "cursor-pointer bg-white text-blue-700 hover:bg-blue-50"
+            )}>
+              {analyzing ? "⏳ Analizando con IA…" : analyzed ? "✅ Analizado · subir otro" : "📎 Subir PDF y analizar"}
+              <input type="file" accept=".pdf,application/pdf" className="hidden" disabled={analyzing}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) runPdfAnalysis(f); e.target.value = ""; }} />
             </label>
             <span className="text-sm font-bold text-white/60">{sessionFile || "Ningún archivo"}</span>
+            {analysisCost !== null && !analyzing && (
+              <span className="rounded-xl bg-emerald-500/20 border border-emerald-300/40 px-3 py-1 text-[11px] font-black text-emerald-100">
+                {analysisFreeTier ? "Gratis (free tier)" : `Coste: $${analysisCost.toFixed(4)}`}
+              </span>
+            )}
           </div>
         </div>
 
@@ -2360,10 +2401,34 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
 
       </div>
 
-      {/* ── BORRADOR DE ANÁLISIS (datos ficticios) ── */}
-      <div className="rounded-2xl border-2 border-dashed border-sky-300 bg-sky-50 px-4 py-2.5 text-center">
-        <p className="text-xs font-black text-sky-600">📄 BORRADOR — análisis del plan escrito · los datos de ejecución requieren vídeo</p>
-      </div>
+      {/* ── ESTADO DEL ANÁLISIS ── */}
+      {analyzing && (
+        <div className="rounded-2xl border-2 border-blue-300 bg-blue-50 px-4 py-3 text-center">
+          <p className="text-sm font-black text-blue-700">⏳ Analizando PDF con Claude — puede tardar unos segundos…</p>
+        </div>
+      )}
+      {analysisError && (
+        <div className="rounded-2xl border-2 border-rose-400 bg-rose-50 px-4 py-3 text-center">
+          <p className="text-sm font-black text-rose-700">❌ Error: {analysisError}</p>
+          <p className="mt-1 text-[11px] text-rose-500">¿El servidor API está corriendo? Lánzalo con <code className="rounded bg-rose-100 px-1">npm run dev:all</code></p>
+        </div>
+      )}
+      {!analyzing && !analysisError && analyzed && analysisCost !== null && (
+        <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4 py-2.5 text-center">
+          <p className="text-xs font-black text-emerald-700">
+            ✅ Análisis IA real
+            {analysisProvider && <span className="ml-1.5 text-emerald-600">· {analysisProvider}</span>}
+            {analysisFreeTier
+              ? <span className="ml-1.5 text-emerald-600">· Gratis (free tier)</span>
+              : <span className="ml-1.5 text-emerald-600">· coste ${analysisCost.toFixed(4)}</span>}
+          </p>
+        </div>
+      )}
+      {!analyzing && !analysisError && !analyzed && (
+        <div className="rounded-2xl border-2 border-dashed border-sky-300 bg-sky-50 px-4 py-2.5 text-center">
+          <p className="text-xs font-black text-sky-600">📄 EJEMPLO — sube un PDF para reemplazar con tu análisis real</p>
+        </div>
+      )}
 
       {/* ── CABECERA — fecha completa ── */}
       <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 px-8 py-8 text-center">
