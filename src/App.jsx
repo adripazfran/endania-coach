@@ -2490,7 +2490,7 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
       <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50 via-teal-50 to-sky-50 p-6 border-2 border-emerald-200 shadow-md">
         <p className="mb-4 text-center text-[11px] font-black uppercase tracking-[0.28em] text-emerald-700">🎯 3 Objetivos principales</p>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          {MOCK.objetivos.map((obj, i) => (
+          {MOCK.objetivos.slice(0, 3).map((obj, i) => (
             <div key={i} className="flex items-center gap-3 rounded-2xl border-2 border-emerald-300 bg-white px-4 py-4 shadow-sm">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-lg font-black text-white shadow">{i+1}</span>
               <p className="text-sm font-black leading-snug text-emerald-900">{obj}</p>

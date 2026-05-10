@@ -41,24 +41,39 @@ const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: proces
 const SYSTEM_PROMPT = `Eres un analista experto en planificación de entrenamiento de fútbol sala femenino.
 Tu tarea es leer un PDF con un plan de sesión y devolver un análisis estructurado en JSON.
 
-REGLAS:
+REGLAS DE FORMATO:
 - Responde SOLO con un JSON válido, sin markdown, sin texto antes ni después.
 - Si un dato no aparece explícito en el PDF, infiere el valor más razonable.
-- UA (Unidades de carga arbitrarias) = suma de (duración × RPE) de todas las tareas.
-- Rangos por día del microciclo (referencia):
-    MD-5: 280-360 UA · MD-4: 300-380 UA · MD-3: 280-420 UA · MD-2: 240-320 UA · MD-1: 140-200 UA · MD+1: 100-160 UA · MD+2: 130-200 UA · MD: 70-110 UA`;
+
+REGLAS DE CONTENIDO (MUY IMPORTANTES — NO LAS IGNORES):
+1. "objetivos": EXACTAMENTE 3 elementos. Ni más ni menos. Si en el PDF hay más, elige los 3 más importantes y agrupa el resto en "tareas". Si hay menos, completa con objetivos coherentes.
+
+2. "tareas": cada tarea representa UNA actividad concreta del plan. Una sesión típica de fútbol sala tiene entre 4 y 8 tareas en total. Si en el PDF hay listas tipo "Fundamentos · ABP · Defensa", esos son OBJETIVOS, NO tareas — no los pongas en "tareas".
+
+3. CARGA UA — fórmula obligatoria:
+   - UA por tarea = duración_minutos × RPE_de_la_tarea
+   - UA total = suma de UA de todas las tareas
+   - El número final TIENE que estar dentro o cerca del rango del MD correspondiente:
+       MD-5: 280-360 · MD-4: 300-380 · MD-3: 280-420 · MD-2: 240-320 · MD-1: 140-200 · MD+1: 100-160 · MD+2: 130-200 · MD: 70-110
+   - "uaMin" y "uaMax": una horquilla razonable de ±10% sobre el total calculado.
+   - Una sesión real RARAMENTE supera 450 UA. Si tu cálculo da 1000+ UA, tienes algún error: revisa minutos y RPE.
+
+4. Tiempos: una sesión típica son 60-90 minutos totales. Si la suma de "min" en tareas pasa de 100 minutos, hay algo raro y debes recalibrar.
+
+5. RPE estimado de la sesión: media ponderada por minutos. Para MD-3 normalmente está entre 5.5 y 6.5.`;
 
 const userPromptFor = (goals, condicionantes) => `CONTEXTO:
 - Objetivos declarados por el entrenador: ${goals}
 - Condicionantes: ${condicionantes}
 
-Devuelve EXCLUSIVAMENTE un JSON con esta estructura:
+Devuelve EXCLUSIVAMENTE un JSON con esta estructura.
+RECORDATORIO CRÍTICO: "objetivos" debe tener EXACTAMENTE 3 elementos. Si en el PDF hay más etiquetas/categorías, agrupa o resume hasta 3.
 {
   "date": "YYYY-MM-DD (fecha de la sesión, hoy si no aparece)",
   "md": "MD-3 / MD-4 / etc",
   "title": "título corto",
   "jugadoras": número,
-  "objetivos": ["objetivo 1", "objetivo 2", "objetivo 3"],
+  "objetivos": ["UN objetivo concreto 1", "UN objetivo concreto 2", "UN objetivo concreto 3"],
   "tareas": [
     {"nombre":"...", "bloque":"Calentamiento|Principal|Vuelta a calma", "min":N, "rpe":1-10, "capacidad":"Técnica|Táctica|Física|Cognitiva|Emocional"}
   ],
@@ -109,7 +124,7 @@ async function analyzePdfWithGemini(buffer, goals, condicionantes) {
     config: {
       systemInstruction: SYSTEM_PROMPT,
       responseMimeType: "application/json",
-      temperature: 0.3,
+      temperature: 0.1,
     },
   });
 
