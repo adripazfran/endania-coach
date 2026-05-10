@@ -837,16 +837,9 @@ function Sidebar({ mainTab, offlineTab, liveTab, regTab, dbView, sessionTab, goT
       </div>
 
       {/* Temporada */}
-      <div className="mb-5 rounded-2xl border border-blue-300/20 bg-blue-950/55 p-3 text-sm font-bold text-blue-100">
-        <label className="block">
-          <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-blue-100/70">Temporada</span>
-          <select
-            value={selectedSeason} onChange={(e) => setSelectedSeason(e.target.value)}
-            className="w-full rounded-2xl border border-yellow-300/25 bg-blue-900/80 px-3 py-2 text-sm font-black text-yellow-200 outline-none focus:border-yellow-300"
-          >
-            {SEASONS.filter((s) => s.hasData).map((s) => <option key={s.label} value={s.label}>{s.label}</option>)}
-          </select>
-        </label>
+      <div className="mb-5 rounded-2xl border border-blue-300/20 bg-blue-950/55 p-3">
+        <span className="mb-1.5 block text-xs font-black uppercase tracking-[0.16em] text-blue-100/70">Temporada</span>
+        <p className="rounded-2xl border border-yellow-300/25 bg-blue-900/80 px-3 py-2 text-sm font-black text-yellow-200">{selectedSeason}</p>
       </div>
 
       {/* Nav */}
@@ -2222,6 +2215,27 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
     recomendacion:"Antes de ejecutar la sesión: añade una tarea de finalización con llegada de ala (8-10') reduciendo el Rondo inicial a 12'. Eso cubre el 3er objetivo y sube la coherencia plan-objetivos al 95%. La carga sigue dentro del rango MD-3.",
   };
 
+  // Medias de MD-3 anteriores (excluyendo la sesión actual)
+  const previousMd3 = useMemo(() => {
+    const md3s = BASE_TRAININGS.filter(t => t.title.startsWith("MD-3") && t.date < MOCK.date);
+    if (md3s.length === 0) return null;
+    const sum = (k) => md3s.reduce((s,t) => s + t[k], 0);
+    return {
+      count:           md3s.length,
+      avgUa:           Math.round(sum("ua") / md3s.length),
+      avgRpe:          Math.round((sum("avgRpe") / md3s.length) * 10) / 10,
+      avgRealMin:      Math.round(sum("realMinutes") / md3s.length),
+      avgEffectiveMin: Math.round(sum("effectiveMinutes") / md3s.length),
+      avgAttendance:   Math.round((sum("attendance") / md3s.length) * 10) / 10,
+    };
+  }, []);
+
+  // Mes y día completos en español para la cabecera
+  const _d         = new Date(MOCK.date + "T12:00:00");
+  const fullDay    = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"][_d.getDay()];
+  const fullMonth  = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"][_d.getMonth()];
+  const dayNumber  = _d.getDate();
+
   // Radar SVG
   const radarPts = MOCK.radar.map((d, i) => {
     const angle = (i / MOCK.radar.length) * Math.PI * 2 - Math.PI / 2;
@@ -2311,20 +2325,14 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
           </div>
         </div>
 
-        {/* 3 bocadillos */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* 2 bocadillos */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {[
             {
               icon: "🎯", title: "Objetivos de la sesión",
               placeholder: "Ej: Mejorar salida de presión, conectar juego interior-pivot, finalizar con llegada de ala al 2º palo...",
               value: sessionGoals, onChange: setSessionGoals,
               border: "border-sky-400/60", bg: "bg-sky-500/20",
-            },
-            {
-              icon: "📚", title: "Contenidos",
-              placeholder: "Ej: Rondo 5x2, situación 3x2 en transición, ABP córner 2º palo, pressing coordinado 4-0...",
-              value: pdfContenidos, onChange: setPdfContenidos,
-              border: "border-indigo-400/60", bg: "bg-indigo-500/20",
             },
             {
               icon: "⚙️", title: "Condicionantes y necesidades",
@@ -2357,37 +2365,72 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
         <p className="text-xs font-black text-sky-600">📄 BORRADOR — análisis del plan escrito · los datos de ejecución requieren vídeo</p>
       </div>
 
-      {/* ── CABECERA ── */}
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* ── CABECERA — fecha completa ── */}
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 px-8 py-8 text-center">
+        <p className="text-[11px] font-black uppercase tracking-[0.32em] text-slate-400">{fullDay}</p>
+        <p className="mt-2 text-5xl font-black text-white leading-none">{dayNumber} <span className="text-amber-300">de {fullMonth}</span></p>
+      </div>
+
+      {/* ── MD-3 con carga esperada — destacado y con medias de anteriores MD-3 ── */}
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 p-6 text-white shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-6">
           <div className="flex items-center gap-5">
-            <span className="rounded-2xl bg-orange-500 px-5 py-3 text-4xl font-black text-white shadow-lg leading-none">{MOCK.md}</span>
+            <span className="rounded-3xl bg-white/15 border-2 border-white/30 px-7 py-5 text-6xl font-black leading-none shadow-inner">{MOCK.md}</span>
             <div>
-              <h3 className="text-3xl font-black text-white leading-tight">{MOCK.title}</h3>
-              <p className="mt-1 text-lg font-black text-slate-300">
-                {["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][new Date(MOCK.date+"T12:00:00").getDay()]}
-                {" · "}
-                {new Date(MOCK.date+"T12:00:00").getDate()}
-                {" "}
-                {["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][new Date(MOCK.date+"T12:00:00").getMonth()].toUpperCase()}
-              </p>
+              <p className="text-[11px] font-black uppercase tracking-[0.28em] text-white/70">Carga esperada</p>
+              <p className="mt-1 text-5xl font-black leading-none">{MOCK.carga.uaMin}–{MOCK.carga.uaMax} <span className="text-2xl font-bold text-white/80">UA</span></p>
+              <p className="mt-2 text-sm font-bold text-white/80">{MOCK.carga.mdRango}</p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-4">
-            <div className="text-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Carga estimada</p>
-              <p className="text-2xl font-black text-amber-400">{MOCK.carga.uaMin}–{MOCK.carga.uaMax}<span className="text-sm text-amber-600"> UA</span></p>
-            </div>
-            <div className="text-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">RPE estimado</p>
-              <p className="text-2xl font-black text-rose-400">{MOCK.carga.rpeEstimado}</p>
+          <div className="flex flex-wrap gap-3">
+            <div className="rounded-2xl bg-white/15 border border-white/25 px-4 py-3 text-center min-w-[110px]">
+              <p className="text-[9px] font-black uppercase tracking-widest text-white/70">RPE estimado</p>
+              <p className="mt-1 text-3xl font-black">{MOCK.carga.rpeEstimado}</p>
             </div>
             <div className="flex items-center">
-              <span className={cn("rounded-xl px-4 py-2 text-sm font-black text-white", MOCK.carga.enRango ? "bg-emerald-600" : "bg-rose-600")}>
+              <span className={cn("rounded-2xl px-5 py-3 text-sm font-black text-white border-2", MOCK.carga.enRango ? "bg-emerald-600/90 border-emerald-300" : "bg-rose-700/90 border-rose-300")}>
                 {MOCK.carga.enRango ? "✅ En rango" : "⚠️ Fuera de rango"}
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Medias de MD-3 anteriores */}
+        {previousMd3 && (
+          <div className="mt-5 rounded-2xl bg-black/25 border border-white/15 p-4">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/70">📊 Media de los {previousMd3.count} MD-3 anteriores</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl bg-white/10 px-3 py-2 text-center">
+                <p className="text-[9px] font-black uppercase tracking-wide text-white/60">UA</p>
+                <p className="text-2xl font-black text-amber-200">{previousMd3.avgUa}</p>
+              </div>
+              <div className="rounded-xl bg-white/10 px-3 py-2 text-center">
+                <p className="text-[9px] font-black uppercase tracking-wide text-white/60">RPE medio</p>
+                <p className="text-2xl font-black text-rose-200">{previousMd3.avgRpe}</p>
+              </div>
+              <div className="rounded-xl bg-white/10 px-3 py-2 text-center">
+                <p className="text-[9px] font-black uppercase tracking-wide text-white/60">Min reales</p>
+                <p className="text-2xl font-black text-sky-200">{previousMd3.avgRealMin}′</p>
+              </div>
+              <div className="rounded-xl bg-white/10 px-3 py-2 text-center">
+                <p className="text-[9px] font-black uppercase tracking-wide text-white/60">Asistencia</p>
+                <p className="text-2xl font-black text-emerald-200">{previousMd3.avgAttendance}</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── 3 OBJETIVOS PRINCIPALES — en el medio, destacados ── */}
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50 via-teal-50 to-sky-50 p-6 border-2 border-emerald-200 shadow-md">
+        <p className="mb-4 text-center text-[11px] font-black uppercase tracking-[0.28em] text-emerald-700">🎯 3 Objetivos principales</p>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {MOCK.objetivos.map((obj, i) => (
+            <div key={i} className="flex items-center gap-3 rounded-2xl border-2 border-emerald-300 bg-white px-4 py-4 shadow-sm">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-lg font-black text-white shadow">{i+1}</span>
+              <p className="text-sm font-black leading-snug text-emerald-900">{obj}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -2443,57 +2486,82 @@ function SessionAnalysisPanel({ mode, sessionFile, setSessionFile, sessionGoals,
         <div className="overflow-hidden rounded-3xl bg-white p-5 shadow-sm border border-slate-100">
           <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400">⏱ Distribución del tiempo planificado</p>
 
-          {/* Barras horizontales por bloque */}
-          <div className="space-y-3">
-            {MOCK.timeBlocks.map(b => (
-              <div key={b.label}>
-                <div className="mb-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 shrink-0 rounded-full" style={{background:b.color}}/>
-                    <span className="text-xs font-black text-slate-700">{b.label}</span>
+          {/* Barras horizontales por bloque + tareas de cada parte */}
+          <div className="space-y-4">
+            {MOCK.timeBlocks.map(b => {
+              const blockKey   = b.label === "Parte principal" ? "Principal" : b.label === "Vuelta a calma" ? "Vuelta a calma" : "Calentamiento";
+              const blockTasks = MOCK.tareas.filter(t => t.bloque === blockKey);
+              return (
+                <div key={b.label}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 shrink-0 rounded-full" style={{background:b.color}}/>
+                      <span className="text-xs font-black text-slate-700">{b.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-slate-500">{b.min}′</span>
+                      <span className="w-9 text-right text-[10px] font-bold text-slate-400">{b.pct}%</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black text-slate-500">{b.min}′</span>
-                    <span className="w-9 text-right text-[10px] font-bold text-slate-400">{b.pct}%</span>
+                  <div className="h-4 w-full overflow-hidden rounded-lg bg-slate-100">
+                    <div className="h-full rounded-lg transition-all"
+                      style={{width:`${b.pct}%`, background:b.color, opacity:0.85}}/>
                   </div>
+                  {blockTasks.length > 0 && (
+                    <ul className="mt-2 ml-5 space-y-1">
+                      {blockTasks.map((t,i) => (
+                        <li key={i} className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1.5">
+                          <span className="text-[11px] font-bold text-slate-700">{t.nombre}</span>
+                          <span className="text-[10px] font-black text-slate-500">{t.min}′ · RPE {t.rpe}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                <div className="h-4 w-full overflow-hidden rounded-lg bg-slate-100">
-                  <div className="h-full rounded-lg transition-all"
-                    style={{width:`${b.pct}%`, background:b.color, opacity:0.85}}/>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Tiempo total + efectivo estimado */}
+          {/* Tiempo total + efectivo estimado con dos escenarios de pérdida */}
           {(() => {
             const totalMin = MOCK.timeBlocks.reduce((s,b)=>s+b.min,0);
-            const efectivo = Math.round(totalMin * 0.80);
-            const perdida  = totalMin - efectivo;
+            const efectivo80 = Math.round(totalMin * 0.80); // 20% pérdida
+            const perdida20  = totalMin - efectivo80;
+            const efectivo70 = Math.round(totalMin * 0.70); // 30% pérdida
+            const perdida30  = totalMin - efectivo70;
             return (
-              <div className="mt-4 space-y-2">
+              <div className="mt-5 space-y-2">
                 <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
                   <span className="text-[10px] font-black uppercase tracking-wide text-slate-400">Total planificado</span>
                   <span className="text-sm font-black text-slate-700">{totalMin}′</span>
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-amber-50 px-3 py-2 border border-amber-200">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wide text-amber-600">Pérdida estimada</span>
-                    <span className="ml-1.5 text-[9px] text-amber-400">(~20% organización · transiciones)</span>
+
+                {/* Escenario pérdida 20% */}
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-amber-700">⚡ Estimado con pérdida 20%</span>
+                    <span className="text-lg font-black text-amber-700">{efectivo80}′</span>
                   </div>
-                  <span className="text-sm font-black text-amber-700">−{perdida}′</span>
+                  <div className="flex items-center justify-between text-[10px] font-bold text-amber-500">
+                    <span>(~20% organización · transiciones)</span>
+                    <span>−{perdida20}′</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 border border-emerald-300">
-                  <span className="text-[10px] font-black uppercase tracking-wide text-emerald-700">⚡ Tiempo efectivo estimado</span>
-                  <span className="text-lg font-black text-emerald-700">{efectivo}′</span>
+
+                {/* Escenario pérdida 30% */}
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-rose-700">⚠️ Estimado con pérdida 30%</span>
+                    <span className="text-lg font-black text-rose-700">{efectivo70}′</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] font-bold text-rose-500">
+                    <span>(escenario con muchas pausas/explicaciones)</span>
+                    <span>−{perdida30}′</span>
+                  </div>
                 </div>
               </div>
             );
           })()}
-
-          <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2">
-            <p className="text-[9px] font-black uppercase text-slate-400">{MOCK.carga.mdRango}</p>
-          </div>
         </div>
       </div>
 
@@ -3019,14 +3087,14 @@ function TrainingSessionPanel({ onSaveTraining }) {
             <p className="rounded-2xl border border-cyan-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-cyan-700 shadow-sm">📋 Info sesión</p>
             <div className="h-px flex-1 bg-cyan-200" />
           </div>
-          <div className="flex-1 grid grid-cols-2 gap-3 content-start">
+          <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-3">
             {[
               { emoji:"👥", label:"Jugadoras",  val:infoJugadoras,  set:setInfoJugadoras,  bg:"from-sky-100 to-cyan-100",     border:"border-sky-200",    text:"text-sky-800",    mode:"numeric" },
               { emoji:"🧤", label:"Porteras",   val:infoPorteras,   set:setInfoPorteras,   bg:"from-teal-100 to-emerald-100", border:"border-teal-200",   text:"text-teal-800",   mode:"numeric" },
               { emoji:"🩹", label:"Lesionadas", val:infoLesionadas, set:setInfoLesionadas, bg:"from-rose-100 to-red-100",     border:"border-rose-200",   text:"text-rose-800",   mode:"numeric" },
               { emoji:"🏟️", label:"Pabellón",   val:infoPabellon,   set:setInfoPabellon,   bg:"from-amber-100 to-yellow-100", border:"border-amber-200",  text:"text-amber-800",  mode:"text"    },
             ].map(({ emoji, label, val, set, bg, border, text, mode }) => (
-              <div key={label} className={cn("flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-3 shadow-sm", bg, border)}>
+              <div key={label} className={cn("flex flex-col items-center justify-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-3 shadow-sm", bg, border)}>
                 <span className="text-xl">{emoji}</span>
                 <span className={cn("text-[10px] font-black uppercase tracking-wide", text)}>{label}</span>
                 <input type="text" inputMode={mode} value={val} onChange={e => set(e.target.value)} placeholder="—"
@@ -3065,14 +3133,14 @@ function TrainingSessionPanel({ onSaveTraining }) {
             <p className="rounded-2xl border border-violet-300 bg-white px-3 py-1 text-xs font-black uppercase tracking-widest text-violet-700 shadow-sm">✦ Complementario</p>
             <div className="h-px flex-1 bg-violet-200" />
           </div>
-          <div className="flex-1 grid grid-cols-2 gap-3 content-start">
+          <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-3">
             {[
               { emoji:"🏋️", label:"Gimnasio",   val:compGym,  set:setCompGym,  bg:"from-blue-100 to-indigo-100",   border:"border-blue-200",    text:"text-blue-800"    },
               { emoji:"🛡️", label:"Preventivo", val:compPrev, set:setCompPrev, bg:"from-amber-100 to-orange-100",  border:"border-amber-200",   text:"text-amber-800"   },
               { emoji:"🧤", label:"Porteras",   val:compPort, set:setCompPort, bg:"from-emerald-100 to-teal-100",  border:"border-emerald-200", text:"text-emerald-800" },
               { emoji:"🎬", label:"Vídeo",      val:compVid,  set:setCompVid,  bg:"from-rose-100 to-pink-100",     border:"border-rose-200",    text:"text-rose-800"    },
             ].map(({ emoji, label, val, set, bg, border, text }) => (
-              <div key={label} className={cn("flex flex-col items-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-3 shadow-sm", bg, border)}>
+              <div key={label} className={cn("flex flex-col items-center justify-center gap-2 rounded-2xl border-2 bg-gradient-to-br p-3 shadow-sm", bg, border)}>
                 <span className="text-xl">{emoji}</span>
                 <span className={cn("text-[10px] font-black uppercase tracking-wide", text)}>{label}</span>
                 <div className="flex items-center gap-1">
