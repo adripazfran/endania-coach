@@ -1861,7 +1861,7 @@ function PhotoUpload({ photoUrl, onChange, label = "Foto", emptyText = "Sin foto
   );
 }
 
-function RegistryPanel({ players, setPlayers, teams, setTeams }) {
+function RegistryPanel({ players, setPlayers, teams, setTeams, trainings = [], matches = [] }) {
   const sortedTeams = sortedTeamsList(teams);
   const [selectedTeamId, setSelectedTeamId] = React.useState(() => {
     const mine = teams.find((t) => t.name === MY_TEAM);
@@ -2092,12 +2092,13 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
           onClick={closeModal}>
-          <div className={cn("w-full overflow-hidden rounded-3xl bg-white shadow-2xl", modal === "viewPlayer" ? "max-w-sm" : "max-w-lg")}
+          <div className={cn("w-full overflow-hidden rounded-3xl bg-white shadow-2xl", modal === "viewPlayer" ? "max-w-2xl" : "max-w-lg")}
             onClick={(e) => e.stopPropagation()}>
 
             {/* ── Visor de ficha completa ── */}
             {modal === "viewPlayer" && editTarget && (() => {
               const p = editTarget;
+              const isMyTeam = p.team === MY_TEAM;
               const age = calculateAge(p.birthDate);
               const posColors = {
                 "Portera":  "bg-amber-100 text-amber-800 border-amber-300",
@@ -2107,52 +2108,149 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
                 "Universal":"bg-rose-100 text-rose-800 border-rose-300",
               };
               const posColor = posColors[p.pos] || "bg-slate-100 text-slate-700 border-slate-300";
+
+              // ── Estadísticas (solo MY_TEAM) ──────────────────────────────
+              const myTrainings = trainings.filter(t => t.date >= `${new Date().getFullYear()-1}-08-01`);
+              const totalSessions  = myTrainings.length;
+              const avgUA  = totalSessions ? Math.round(myTrainings.reduce((s,t)=>s+(t.ua||0),0)/totalSessions) : 0;
+              const avgRpe = totalSessions ? parseFloat((myTrainings.reduce((s,t)=>s+(t.avgRpe||0),0)/totalSessions).toFixed(1)) : 0;
+              const myMatches  = matches.filter(m => m.teams.includes(MY_TEAM));
+              let wins=0,draws=0,losses=0,gf=0,gc=0;
+              myMatches.forEach(m => {
+                const myStats = getMatchStats(m, MY_TEAM);
+                const rvStats = m.teams[0]===MY_TEAM ? m.b : m.a;
+                gf += myStats.goals; gc += rvStats.goals;
+                if(myStats.goals > rvStats.goals) wins++;
+                else if(myStats.goals === rvStats.goals) draws++;
+                else losses++;
+              });
+              const totalMatches = myMatches.length;
+              const winPct = totalMatches ? Math.round((wins/totalMatches)*100) : 0;
+
+              // Top conceptos trabajados
+              const conceptCount = {};
+              myTrainings.forEach(t => (t.concepts||[]).forEach(c => { conceptCount[c]=(conceptCount[c]||0)+1; }));
+              const topConcepts = Object.entries(conceptCount).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([c])=>c);
+
               return (
-                <>
-                  {/* Header degradado */}
-                  <div className="relative bg-gradient-to-br from-[#061a3f] via-[#0c3070] to-[#08285f] px-6 pt-8 pb-16 text-center">
+                <div className="max-h-[90vh] overflow-y-auto">
+                  {/* Header */}
+                  <div className="relative bg-gradient-to-br from-[#061a3f] via-[#0c3070] to-[#08285f] px-8 pt-10 pb-20 text-center">
                     <button type="button" onClick={closeModal}
-                      className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
-                    <div className="mx-auto mb-3 h-24 w-24 overflow-hidden rounded-2xl border-4 border-white/30 shadow-xl">
+                      className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
+                    {isMyTeam && (
+                      <span className="absolute left-4 top-4 rounded-xl bg-amber-400/20 border border-amber-400/40 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-300">★ {MY_TEAM}</span>
+                    )}
+                    <div className="mx-auto mb-4 h-32 w-32 overflow-hidden rounded-3xl border-4 border-white/30 shadow-2xl">
                       <PlayerAvatar player={p} size="h-full w-full" />
                     </div>
-                    <p className="text-3xl font-black text-white">{p.name}</p>
-                    <p className="text-lg font-bold text-white/70">{p.surname}</p>
+                    <p className="text-4xl font-black text-white">{p.name}</p>
+                    <p className="mt-1 text-xl font-bold text-white/70">{p.surname}</p>
+                    <div className="mt-3 flex items-center justify-center gap-3">
+                      <span className="rounded-xl bg-white/20 px-4 py-1.5 text-lg font-black text-white">#{p.dorsal}</span>
+                      <span className={cn("rounded-xl border px-4 py-1.5 text-sm font-black", posColor)}>{p.pos}</span>
+                    </div>
                   </div>
-                  {/* Ficha de datos */}
-                  <div className="-mt-8 mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-lg">
-                    <div className="grid grid-cols-3 divide-x divide-slate-100">
-                      <div className="py-4 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dorsal</p>
-                        <p className="mt-1 text-3xl font-black text-slate-900">#{p.dorsal}</p>
-                      </div>
-                      <div className="py-4 text-center">
+
+                  {/* Datos básicos */}
+                  <div className="-mt-10 mx-5 mb-4 overflow-hidden rounded-2xl bg-white shadow-xl">
+                    <div className="grid grid-cols-3 divide-x divide-slate-100 text-center">
+                      <div className="py-5">
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Edad</p>
                         <p className="mt-1 text-3xl font-black text-slate-900">{age || "—"}</p>
+                        <p className="text-[10px] text-slate-400">{p.birthDate || ""}</p>
                       </div>
-                      <div className="flex flex-col items-center justify-center py-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Posición</p>
-                        <span className={cn("rounded-xl border px-2.5 py-1 text-xs font-black", posColor)}>{p.pos}</span>
+                      <div className="py-5">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Equipo</p>
+                        <p className="mt-1 text-sm font-black text-slate-900 px-2 leading-tight">{p.team || MY_TEAM}</p>
                       </div>
-                    </div>
-                    <div className="border-t border-slate-100 px-5 py-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black uppercase tracking-wide text-slate-400">Equipo</span>
-                        <span className="text-sm font-black text-slate-800">{p.team || MY_TEAM}</span>
+                      <div className="py-5">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Posición</p>
+                        <p className="mt-2 text-sm font-black text-slate-700">{p.pos}</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black uppercase tracking-wide text-slate-400">Fecha nac.</span>
-                        <span className="text-sm font-bold text-slate-700">{p.birthDate || "—"}</span>
-                      </div>
-                    </div>
-                    <div className="border-t border-slate-100 px-5 pb-5 pt-3 flex gap-2">
-                      <button type="button" onClick={() => { closeModal(); setTimeout(() => openModal("editPlayer", p), 50); }}
-                        className="flex-1 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-2.5 text-sm font-black text-white transition hover:from-violet-400 hover:to-fuchsia-500">
-                        ✏️ Editar ficha
-                      </button>
                     </div>
                   </div>
-                </>
+
+                  {/* ── Estadísticas MY_TEAM ── */}
+                  {isMyTeam ? (
+                    <div className="mx-5 mb-5 space-y-4">
+                      {/* KPIs de entrenamientos */}
+                      <div>
+                        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">🏋️ Temporada en entrenamientos</p>
+                        <div className="grid grid-cols-3 gap-3">
+                          {[
+                            { label: "Sesiones", val: totalSessions, color: "bg-violet-50 border-violet-200 text-violet-700" },
+                            { label: "Carga media UA", val: avgUA, color: "bg-amber-50 border-amber-200 text-amber-700" },
+                            { label: "RPE medio", val: avgRpe || "—", color: "bg-rose-50 border-rose-200 text-rose-700" },
+                          ].map(({ label, val, color }) => (
+                            <div key={label} className={cn("rounded-2xl border p-4 text-center", color)}>
+                              <p className="text-2xl font-black">{val}</p>
+                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide opacity-70">{label}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Conceptos más trabajados */}
+                      {topConcepts.length > 0 && (
+                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Contenidos más trabajados</p>
+                          <div className="flex flex-wrap justify-center gap-2">
+                            {topConcepts.map(c => (
+                              <span key={c} className="rounded-xl bg-slate-200 px-3 py-1 text-xs font-black text-slate-700">{c}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* KPIs de partidos */}
+                      <div>
+                        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">⚽ Temporada en partidos</p>
+                        <div className="grid grid-cols-4 gap-3">
+                          {[
+                            { label: "Partidos", val: totalMatches, color: "bg-sky-50 border-sky-200 text-sky-700" },
+                            { label: "% Victoria", val: `${winPct}%`, color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+                            { label: "Goles a favor", val: gf, color: "bg-blue-50 border-blue-200 text-blue-700" },
+                            { label: "Goles en contra", val: gc, color: "bg-red-50 border-red-200 text-red-700" },
+                          ].map(({ label, val, color }) => (
+                            <div key={label} className={cn("rounded-2xl border p-3 text-center", color)}>
+                              <p className="text-xl font-black">{val}</p>
+                              <p className="mt-0.5 text-[9px] font-black uppercase tracking-wide opacity-70">{label}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {totalMatches > 0 && (
+                          <div className="mt-3 flex overflow-hidden rounded-xl">
+                            {[
+                              { n: wins,   label:"V", color:"bg-emerald-500" },
+                              { n: draws,  label:"E", color:"bg-amber-400"   },
+                              { n: losses, label:"D", color:"bg-rose-500"    },
+                            ].map(({ n, label, color }) => n > 0 && (
+                              <div key={label} className={cn("flex items-center justify-center py-2 text-xs font-black text-white", color)}
+                                style={{ flex: n }}>
+                                {label} {n}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mx-5 mb-5 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-6 text-center">
+                      <p className="text-2xl mb-2">🔒</p>
+                      <p className="text-sm font-black text-slate-500">Estadísticas detalladas</p>
+                      <p className="mt-1 text-xs text-slate-400">Solo disponibles para jugadoras de <span className="font-black text-slate-600">{MY_TEAM}</span></p>
+                    </div>
+                  )}
+
+                  {/* Botón editar */}
+                  <div className="border-t border-slate-100 px-5 pb-6 pt-3 flex gap-2">
+                    <button type="button" onClick={() => { closeModal(); setTimeout(() => openModal("editPlayer", p), 50); }}
+                      className="flex-1 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-3 text-sm font-black text-white transition hover:from-violet-400 hover:to-fuchsia-500">
+                      ✏️ Editar ficha
+                    </button>
+                  </div>
+                </div>
               );
             })()}
 
@@ -5118,12 +5216,11 @@ export default function App() {
               )}
               {mainTab === "session" && (
                 <div className="space-y-5">
-                  {/* ── 3 Tabs ── */}
-                  <div className="grid grid-cols-3 gap-2">
+                  {/* ── 2 Tabs ── */}
+                  <div className="grid grid-cols-2 gap-2">
                     {[
                       { key: "registro", label: "📋 Registrar sesión"   },
                       { key: "pdf",      label: "📄 Análisis PDF / Foto" },
-                      { key: "video",    label: "🎬 Análisis de vídeo"   },
                     ].map((v) => (
                       <button key={v.key} type="button" onClick={() => setSessionTab(v.key)}
                         className={cn(
@@ -5137,12 +5234,11 @@ export default function App() {
                     ))}
                   </div>
                   {sessionTab === "registro" && <TrainingSessionPanel onSaveTraining={(t) => setTrainings((c) => [t, ...c])} />}
-                  {sessionTab === "pdf"      && <SessionAnalysisPanel mode="pdf"   sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
-                  {sessionTab === "video"    && <SessionAnalysisPanel mode="video" sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
+                  {sessionTab === "pdf"      && <SessionAnalysisPanel mode="pdf" sessionFile={sessionFile} setSessionFile={setSessionFile} sessionGoals={sessionGoals} setSessionGoals={setSessionGoals} sessionProgress={sessionProgress} setSessionProgress={setSessionProgress} />}
                 </div>
               )}
               {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} setMatches={setMatches} />}
-              {mainTab === "registro" && <RegistryPanel players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} />}
+              {mainTab === "registro" && <RegistryPanel players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} trainings={seasonTrainings} matches={seasonMatches} />}
               {mainTab === "bd" && <DatabasePanel teams={seasonTeams} players={seasonPlayers} matches={seasonMatches} trainings={seasonTrainings} dbTeam={dbTeam} setDbTeam={setDbTeam} dbView={dbView} setDbView={setDbView} />}
             </ErrorBoundary>
           </div>
