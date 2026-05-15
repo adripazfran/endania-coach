@@ -44,7 +44,7 @@ const NAV_GROUPS = [
     items: [],
   },
   {
-    title: "💬 MENSAJES", main: "mensajes",
+    title: "🤖 COACH IA", main: "mensajes",
     titleBg: "bg-violet-800 hover:bg-purple-700", itemBg: "bg-violet-800/90 hover:bg-purple-700",
     activeBg: "from-violet-600 to-purple-800", accent: "from-violet-300 to-purple-500",
     items: [],
@@ -5316,7 +5316,7 @@ function DatabasePanel({ teams, players, matches, trainings, dbTeam, setDbTeam, 
 function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: "assistant", content: "¡Hola! Soy el asistente de Endania Coach 👋\n¿En qué puedo ayudarte hoy?" },
+    { role: "assistant", content: "¡Hola! 👋 Soy el asistente de Endania Coach.\n¿Quieres saber más sobre la app o hablar con el equipo para probarla?" },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -5445,146 +5445,164 @@ function ChatWidget() {
   );
 }
 
-// ─── ConversationsPanel ───────────────────────────────────────────────────────
+// ─── AssistantPanel ───────────────────────────────────────────────────────────
 
-function ConversationsPanel() {
-  const [convs, setConvs] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const [loading, setLoading] = useState(true);
+const SUGERENCIAS = [
+  { icon: "⚡", label: "Pressing alto", text: "¿Cómo organizar un pressing alto efectivo en fútbol sala?" },
+  { icon: "🎯", label: "Sistemas defensivos", text: "¿Qué sistema defensivo usar contra un rival que juega en 1-2-1?" },
+  { icon: "📊", label: "Planificación de carga", text: "¿Cómo planificar la carga de entrenamiento en MD-3?" },
+  { icon: "🧤", label: "Entrenamiento porteros", text: "¿Qué ejercicios específicos recomiendas para porteros de fútbol sala?" },
+  { icon: "🥗", label: "Nutrición partido", text: "¿Qué deben comer los jugadores el día de partido?" },
+  { icon: "🧠", label: "Psicología del vestuario", text: "¿Cómo gestionar el vestuario tras una derrota importante?" },
+  { icon: "🔄", label: "Transiciones", text: "¿Cómo trabajar las transiciones defensa-ataque en fútbol sala?" },
+  { icon: "💪", label: "Preparación física", text: "¿Cómo estructurar la pretemporada física en fútbol sala?" },
+];
+
+function AssistantPanel() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const bottomRef = useRef(null);
 
-  function reload() {
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function send(overrideText) {
+    const content = typeof overrideText === "string" ? overrideText : input.trim();
+    if (!content || loading) return;
+    setError("");
+    const userMsg = { role: "user", content };
+    const next = [...messages, userMsg];
+    setMessages(next);
+    setInput("");
     setLoading(true);
-    fetch("/api/conversations")
-      .then(r => r.json())
-      .then(data => { setConvs([...data].reverse()); setLoading(false); })
-      .catch(() => { setError("No se puede conectar con el servidor. ¿Está corriendo con npm run dev:all?"); setLoading(false); });
+    try {
+      const res = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: next }),
+      });
+      if (!res.ok) throw new Error("Server error");
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+    } catch {
+      setError("No se puede conectar con el servidor. Arranca con npm run dev:all");
+    } finally {
+      setLoading(false);
+    }
   }
-
-  useEffect(() => { reload(); }, []);
-
-  async function markRead(id) {
-    await fetch(`/api/conversations/${id}/read`, { method: "PATCH" });
-    setConvs(prev => prev.map(c => c.id === id ? { ...c, read: true } : c));
-  }
-
-  async function deleteConv(id) {
-    await fetch(`/api/conversations/${id}`, { method: "DELETE" });
-    setConvs(prev => prev.filter(c => c.id !== id));
-    if (selected === id) setSelected(null);
-  }
-
-  const selectedConv = convs.find(c => c.id === selected);
-  const unread = convs.filter(c => !c.read).length;
 
   return (
-    <div className="space-y-5">
-      <Card className="p-5">
+    <div className="flex flex-col overflow-hidden rounded-3xl border border-violet-200/60 shadow-2xl"
+      style={{ height: "calc(100vh - 260px)", minHeight: 520 }}>
+
+      {/* ── Header ── */}
+      <div className="shrink-0 bg-gradient-to-r from-[#1e0a4e] via-violet-800 to-purple-900 px-6 py-5">
         <div className="flex items-center justify-between">
-          <div>
-            <SectionTitle title="💬 Conversaciones del asistente" subtitle="Mensajes recibidos a través del chat de la web." />
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-3xl shadow-lg ring-2 ring-white/20">
+              🤖
+              <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-[#1e0a4e] bg-emerald-400"></span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xl font-black text-white">Coach IA</p>
+                <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white/70">Fútbol Sala</span>
+              </div>
+              <p className="text-sm text-white/50">Técnica · Táctica · Física · Metodología · Psicología · Nutrición · Porteros</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {unread > 0 && (
-              <span className="rounded-full bg-violet-600 px-2.5 py-1 text-xs font-black text-white">{unread} sin leer</span>
-            )}
-            <button onClick={reload}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50 transition">
-              🔄 Actualizar
+          {messages.length > 0 && (
+            <button onClick={() => setMessages([])}
+              className="rounded-xl bg-white/10 px-4 py-2 text-xs font-black text-white/70 transition hover:bg-white/20">
+              + Nueva consulta
             </button>
-          </div>
-        </div>
-      </Card>
-
-      {error && (
-        <Card className="p-5">
-          <p className="text-sm font-semibold text-rose-600">⚠️ {error}</p>
-        </Card>
-      )}
-
-      {loading && !error && (
-        <Card className="p-8 text-center">
-          <p className="text-sm text-slate-400 animate-pulse">Cargando conversaciones…</p>
-        </Card>
-      )}
-
-      {!loading && !error && convs.length === 0 && (
-        <Card className="p-10 text-center">
-          <p className="text-4xl mb-3">💬</p>
-          <p className="font-black text-slate-700">Sin conversaciones todavía</p>
-          <p className="text-sm text-slate-400 mt-1">Cuando alguien use el asistente, las conversaciones aparecerán aquí.</p>
-        </Card>
-      )}
-
-      {!loading && convs.length > 0 && (
-        <div className={cn("grid gap-4", selectedConv ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
-          {/* Lista */}
-          <div className="space-y-2">
-            {convs.map(c => (
-              <button key={c.id} onClick={() => { setSelected(c.id === selected ? null : c.id); if (!c.read) markRead(c.id); }}
-                className={cn(
-                  "w-full rounded-2xl border p-4 text-left transition-all",
-                  selected === c.id
-                    ? "border-violet-400 bg-violet-50 shadow-md"
-                    : c.read
-                      ? "border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50/50"
-                      : "border-violet-300 bg-violet-50/70 hover:border-violet-400"
-                )}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      {!c.read && <span className="h-2 w-2 shrink-0 rounded-full bg-violet-600"></span>}
-                      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
-                        {new Date(c.startedAt).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
-                        {(c.messages?.filter(m => m.role === "user").length || 0)} preguntas
-                      </span>
-                    </div>
-                    <p className="truncate text-sm font-semibold text-slate-700">{c.preview || "Sin contenido"}</p>
-                  </div>
-                  <button onClick={e => { e.stopPropagation(); deleteConv(c.id); }}
-                    className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500 transition">
-                    🗑
-                  </button>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Detalle */}
-          {selectedConv && (
-            <Card className="p-0 overflow-hidden flex flex-col" style={{ maxHeight: 600 }}>
-              <div className="shrink-0 bg-gradient-to-r from-violet-600 to-purple-700 px-5 py-4">
-                <p className="text-xs font-black uppercase tracking-widest text-white/70">Conversación</p>
-                <p className="text-sm font-black text-white">
-                  {new Date(selectedConv.startedAt).toLocaleString("es-ES", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
-                </p>
-              </div>
-              <div className="flex-1 overflow-y-auto space-y-3 p-4">
-                {(selectedConv.messages || []).filter(m => m.role !== "system").map((m, i) => (
-                  <div key={i} className={cn("flex items-end gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
-                    {m.role === "assistant" && (
-                      <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">EC</div>
-                    )}
-                    <div className={cn(
-                      "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
-                      m.role === "user"
-                        ? "rounded-br-sm bg-violet-600 text-white"
-                        : "rounded-bl-sm bg-slate-100 text-slate-800"
-                    )}>
-                      {m.content}
-                    </div>
-                    {m.role === "user" && (
-                      <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-black text-slate-600">U</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </Card>
           )}
         </div>
-      )}
+      </div>
+
+      {/* ── Cuerpo ── */}
+      <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
+        {messages.length === 0 ? (
+          /* Pantalla de bienvenida */
+          <div className="flex h-full flex-col items-center justify-center gap-8 px-6 py-10">
+            <div className="text-center">
+              <p className="text-5xl mb-4">🏟️</p>
+              <p className="text-2xl font-black text-slate-800">¿Qué quieres trabajar hoy?</p>
+              <p className="mt-2 text-sm text-slate-400">Soy experto en todas las áreas del fútbol sala. Pregúntame lo que necesites.</p>
+            </div>
+            <div className="grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
+              {SUGERENCIAS.map((s, i) => (
+                <button key={i} onClick={() => send(s.text)}
+                  className="flex flex-col items-center gap-2 rounded-2xl border border-violet-100 bg-white p-4 text-center shadow-sm transition-all hover:border-violet-400 hover:bg-violet-50 hover:shadow-md">
+                  <span className="text-2xl">{s.icon}</span>
+                  <span className="text-xs font-black text-slate-600">{s.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Conversación */
+          <div className="space-y-5 p-6">
+            {messages.map((m, i) => (
+              <div key={i} className={cn("flex items-start gap-3", m.role === "user" ? "justify-end" : "justify-start")}>
+                {m.role === "assistant" && (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-purple-700 text-lg shadow">🤖</div>
+                )}
+                <div className={cn(
+                  "max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+                  m.role === "user"
+                    ? "rounded-tr-sm bg-gradient-to-br from-violet-600 to-purple-700 text-white"
+                    : "rounded-tl-sm border border-slate-100 bg-white text-slate-800"
+                )}>
+                  <p className="whitespace-pre-wrap">{m.content}</p>
+                </div>
+                {m.role === "user" && (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-xs font-black text-white shadow">TÚ</div>
+                )}
+              </div>
+            ))}
+            {loading && (
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-purple-700 text-lg shadow">🤖</div>
+                <div className="rounded-2xl rounded-tl-sm border border-slate-100 bg-white px-5 py-4 shadow-sm">
+                  <div className="flex items-center gap-1.5">
+                    {[0, 150, 300].map(d => (
+                      <span key={d} className="h-2.5 w-2.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                    ))}
+                    <span className="ml-2 text-xs text-slate-400">Analizando...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+        )}
+      </div>
+
+      {/* ── Input ── */}
+      <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-4">
+        {error && <p className="mb-2 text-xs font-semibold text-rose-500">⚠️ {error}</p>}
+        <div className="flex gap-3">
+          <input
+            type="text" value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+            placeholder="Pregunta sobre técnica, táctica, preparación física, metodología..."
+            className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-violet-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-200"
+          />
+          <button onClick={() => send()} disabled={loading || !input.trim()}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-700 px-5 py-3 text-sm font-black text-white shadow transition hover:from-violet-700 hover:to-purple-800 disabled:opacity-40">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+              <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.854 5.97a.75.75 0 0 0 .68.51H10a.75.75 0 0 1 0 1.5H4.813a.75.75 0 0 0-.68.51l-1.854 5.97a.75.75 0 0 0 .826.95 28.896 28.896 0 0 0 15.293-7.154.75.75 0 0 0 0-1.115A28.897 28.897 0 0 0 3.105 2.288Z" />
+            </svg>
+            Enviar
+          </button>
+        </div>
+        <p className="mt-2 text-center text-[10px] text-slate-300">Coach IA · Solo responde sobre fútbol sala</p>
+      </div>
     </div>
   );
 }
@@ -5759,9 +5777,9 @@ export default function App() {
                 <p className="mt-2 text-sm font-semibold text-white/80">Seguimiento en directo del partido</p>
               </header>
             ) : mainTab === "mensajes" ? (
-              <header className="rounded-[32px] border border-violet-200/60 bg-gradient-to-r from-violet-600 to-purple-700 p-7 text-center shadow-lg">
-                <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">💬 MENSAJES</h1>
-                <p className="mt-2 text-sm font-semibold text-white/80">Conversaciones del asistente virtual</p>
+              <header className="rounded-[32px] border border-violet-200/60 bg-gradient-to-r from-[#1e0a4e] via-violet-800 to-purple-900 p-7 text-center shadow-lg">
+                <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">🤖 COACH IA</h1>
+                <p className="mt-2 text-sm font-semibold text-white/60">Asistente experto en fútbol sala · Solo entrenamiento y partido</p>
               </header>
             ) : (
               <header className="rounded-[32px] border border-white/80 bg-white/90 p-6 text-center shadow-sm backdrop-blur">
@@ -5823,7 +5841,7 @@ export default function App() {
               {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} setMatches={setMatches} />}
               {mainTab === "registro" && <RegistryPanel players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} trainings={seasonTrainings} matches={seasonMatches} />}
               {mainTab === "bd" && <DatabasePanel teams={seasonTeams} players={seasonPlayers} matches={seasonMatches} trainings={seasonTrainings} dbTeam={dbTeam} setDbTeam={setDbTeam} dbView={dbView} setDbView={setDbView} />}
-              {mainTab === "mensajes" && <ConversationsPanel />}
+              {mainTab === "mensajes" && <AssistantPanel />}
             </ErrorBoundary>
           </div>
         </main>
