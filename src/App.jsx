@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -41,6 +41,12 @@ const NAV_GROUPS = [
     title: "PARTIDO LIVE", main: "live",
     titleBg: "bg-yellow-700 hover:bg-violet-700", itemBg: "bg-yellow-700/90 hover:bg-violet-700",
     activeBg: "from-yellow-500 to-amber-700", accent: "from-yellow-300 to-amber-500",
+    items: [],
+  },
+  {
+    title: "💬 MENSAJES", main: "mensajes",
+    titleBg: "bg-violet-800 hover:bg-purple-700", itemBg: "bg-violet-800/90 hover:bg-purple-700",
+    activeBg: "from-violet-600 to-purple-800", accent: "from-violet-300 to-purple-500",
     items: [],
   },
 ];
@@ -5305,6 +5311,284 @@ function DatabasePanel({ teams, players, matches, trainings, dbTeam, setDbTeam, 
   );
 }
 
+// ─── ChatWidget ──────────────────────────────────────────────────────────────
+
+function ChatWidget() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { role: "assistant", content: "¡Hola! Soy el asistente de Endania Coach 👋\n¿En qué puedo ayudarte hoy?" },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sessionId] = useState(() => `chat_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, open]);
+
+  async function send() {
+    if (!input.trim() || loading) return;
+    const userMsg = { role: "user", content: input.trim() };
+    const next = [...messages, userMsg];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: next, sessionId }),
+      });
+      if (!res.ok) throw new Error("Server error");
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Lo siento, no puedo responder ahora mismo.\n\nContacta con nosotros directamente:\n📱 WhatsApp: +34 600 000 000\n📧 info@endaniacoach.com",
+      }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[200] flex flex-col items-end gap-3">
+      {open && (
+        <div
+          className="flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+          style={{ width: 360, height: 500 }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-violet-600 to-purple-700 px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 text-sm font-black text-white">EC</div>
+              <div>
+                <p className="text-sm font-black text-white">Endania Coach</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <p className="text-[10px] text-white/70">Asistente online</p>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setOpen(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20 transition">✕</button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto space-y-3 p-4">
+            {messages.map((m, i) => (
+              <div key={i} className={cn("flex items-end gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
+                {m.role === "assistant" && (
+                  <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">EC</div>
+                )}
+                <div className={cn(
+                  "max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
+                  m.role === "user"
+                    ? "rounded-br-sm bg-violet-600 text-white"
+                    : "rounded-bl-sm bg-slate-100 text-slate-800"
+                )}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex items-end gap-2">
+                <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">EC</div>
+                <div className="rounded-2xl rounded-bl-sm bg-slate-100 px-4 py-3">
+                  <div className="flex gap-1">
+                    {[0, 150, 300].map(d => (
+                      <span key={d} className="h-2 w-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div className="shrink-0 border-t border-slate-100 p-3">
+            <div className="flex gap-2">
+              <input
+                type="text" value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
+                placeholder="Escribe tu pregunta..."
+                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-violet-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
+              />
+              <button onClick={send} disabled={loading || !input.trim()}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white transition hover:bg-violet-700 disabled:opacity-40">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+                  <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.854 5.97a.75.75 0 0 0 .68.51H10a.75.75 0 0 1 0 1.5H4.813a.75.75 0 0 0-.68.51l-1.854 5.97a.75.75 0 0 0 .826.95 28.896 28.896 0 0 0 15.293-7.154.75.75 0 0 0 0-1.115A28.897 28.897 0 0 0 3.105 2.288Z" />
+                </svg>
+              </button>
+            </div>
+            <p className="mt-1.5 text-center text-[10px] text-slate-400">Asistente IA · Endania Coach</p>
+          </div>
+        </div>
+      )}
+
+      {/* Bubble button */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-purple-700 shadow-xl shadow-violet-500/30 transition-all hover:scale-110"
+        title="Asistente Endania Coach"
+      >
+        {open
+          ? <span className="text-lg font-black text-white">✕</span>
+          : <span className="text-2xl">💬</span>}
+      </button>
+    </div>
+  );
+}
+
+// ─── ConversationsPanel ───────────────────────────────────────────────────────
+
+function ConversationsPanel() {
+  const [convs, setConvs] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  function reload() {
+    setLoading(true);
+    fetch("/api/conversations")
+      .then(r => r.json())
+      .then(data => { setConvs([...data].reverse()); setLoading(false); })
+      .catch(() => { setError("No se puede conectar con el servidor. ¿Está corriendo con npm run dev:all?"); setLoading(false); });
+  }
+
+  useEffect(() => { reload(); }, []);
+
+  async function markRead(id) {
+    await fetch(`/api/conversations/${id}/read`, { method: "PATCH" });
+    setConvs(prev => prev.map(c => c.id === id ? { ...c, read: true } : c));
+  }
+
+  async function deleteConv(id) {
+    await fetch(`/api/conversations/${id}`, { method: "DELETE" });
+    setConvs(prev => prev.filter(c => c.id !== id));
+    if (selected === id) setSelected(null);
+  }
+
+  const selectedConv = convs.find(c => c.id === selected);
+  const unread = convs.filter(c => !c.read).length;
+
+  return (
+    <div className="space-y-5">
+      <Card className="p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <SectionTitle title="💬 Conversaciones del asistente" subtitle="Mensajes recibidos a través del chat de la web." />
+          </div>
+          <div className="flex items-center gap-2">
+            {unread > 0 && (
+              <span className="rounded-full bg-violet-600 px-2.5 py-1 text-xs font-black text-white">{unread} sin leer</span>
+            )}
+            <button onClick={reload}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-50 transition">
+              🔄 Actualizar
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      {error && (
+        <Card className="p-5">
+          <p className="text-sm font-semibold text-rose-600">⚠️ {error}</p>
+        </Card>
+      )}
+
+      {loading && !error && (
+        <Card className="p-8 text-center">
+          <p className="text-sm text-slate-400 animate-pulse">Cargando conversaciones…</p>
+        </Card>
+      )}
+
+      {!loading && !error && convs.length === 0 && (
+        <Card className="p-10 text-center">
+          <p className="text-4xl mb-3">💬</p>
+          <p className="font-black text-slate-700">Sin conversaciones todavía</p>
+          <p className="text-sm text-slate-400 mt-1">Cuando alguien use el asistente, las conversaciones aparecerán aquí.</p>
+        </Card>
+      )}
+
+      {!loading && convs.length > 0 && (
+        <div className={cn("grid gap-4", selectedConv ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+          {/* Lista */}
+          <div className="space-y-2">
+            {convs.map(c => (
+              <button key={c.id} onClick={() => { setSelected(c.id === selected ? null : c.id); if (!c.read) markRead(c.id); }}
+                className={cn(
+                  "w-full rounded-2xl border p-4 text-left transition-all",
+                  selected === c.id
+                    ? "border-violet-400 bg-violet-50 shadow-md"
+                    : c.read
+                      ? "border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50/50"
+                      : "border-violet-300 bg-violet-50/70 hover:border-violet-400"
+                )}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      {!c.read && <span className="h-2 w-2 shrink-0 rounded-full bg-violet-600"></span>}
+                      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+                        {new Date(c.startedAt).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
+                        {(c.messages?.filter(m => m.role === "user").length || 0)} preguntas
+                      </span>
+                    </div>
+                    <p className="truncate text-sm font-semibold text-slate-700">{c.preview || "Sin contenido"}</p>
+                  </div>
+                  <button onClick={e => { e.stopPropagation(); deleteConv(c.id); }}
+                    className="shrink-0 rounded-lg p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500 transition">
+                    🗑
+                  </button>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Detalle */}
+          {selectedConv && (
+            <Card className="p-0 overflow-hidden flex flex-col" style={{ maxHeight: 600 }}>
+              <div className="shrink-0 bg-gradient-to-r from-violet-600 to-purple-700 px-5 py-4">
+                <p className="text-xs font-black uppercase tracking-widest text-white/70">Conversación</p>
+                <p className="text-sm font-black text-white">
+                  {new Date(selectedConv.startedAt).toLocaleString("es-ES", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-3 p-4">
+                {(selectedConv.messages || []).filter(m => m.role !== "system").map((m, i) => (
+                  <div key={i} className={cn("flex items-end gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
+                    {m.role === "assistant" && (
+                      <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-100 text-[10px] font-black text-violet-700">EC</div>
+                    )}
+                    <div className={cn(
+                      "max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
+                      m.role === "user"
+                        ? "rounded-br-sm bg-violet-600 text-white"
+                        : "rounded-bl-sm bg-slate-100 text-slate-800"
+                    )}>
+                      {m.content}
+                    </div>
+                    {m.role === "user" && (
+                      <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-black text-slate-600">U</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -5368,6 +5652,7 @@ export default function App() {
     dbView === "informacion" ? "Base de Datos · Información" :
     dbView === "entrenamientos" ? "Base de Datos · Entrenamientos" :
     dbView === "historial" ? "Base de Datos · Historial" :
+    mainTab === "mensajes" ? "Mensajes · Asistente IA" :
     "Base de Datos · Partidos";
 
   if (loggedOut) {
@@ -5445,6 +5730,7 @@ export default function App() {
           mainTab === "session"   && "from-sky-100 via-blue-50 to-indigo-100",
           mainTab === "offline"   && "from-red-100 via-rose-50 to-pink-100",
           mainTab === "live"      && "from-yellow-100 via-amber-50 to-orange-100",
+          mainTab === "mensajes"  && "from-violet-100 via-purple-50 to-fuchsia-100",
         )}>
           <div className="mx-auto max-w-7xl space-y-6">
             {mainTab === "registro" ? (
@@ -5471,6 +5757,11 @@ export default function App() {
               <header className="rounded-[32px] border border-yellow-200/60 bg-gradient-to-r from-yellow-500 to-amber-600 p-7 text-center shadow-lg">
                 <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">PARTIDO LIVE</h1>
                 <p className="mt-2 text-sm font-semibold text-white/80">Seguimiento en directo del partido</p>
+              </header>
+            ) : mainTab === "mensajes" ? (
+              <header className="rounded-[32px] border border-violet-200/60 bg-gradient-to-r from-violet-600 to-purple-700 p-7 text-center shadow-lg">
+                <h1 className="text-4xl font-black tracking-tight text-white drop-shadow">💬 MENSAJES</h1>
+                <p className="mt-2 text-sm font-semibold text-white/80">Conversaciones del asistente virtual</p>
               </header>
             ) : (
               <header className="rounded-[32px] border border-white/80 bg-white/90 p-6 text-center shadow-sm backdrop-blur">
@@ -5532,10 +5823,12 @@ export default function App() {
               {mainTab === "live" && <LivePanel players={seasonPlayers} teams={seasonTeams} setMatches={setMatches} />}
               {mainTab === "registro" && <RegistryPanel players={seasonPlayers} setPlayers={setPlayers} teams={seasonTeams} setTeams={setTeams} trainings={seasonTrainings} matches={seasonMatches} />}
               {mainTab === "bd" && <DatabasePanel teams={seasonTeams} players={seasonPlayers} matches={seasonMatches} trainings={seasonTrainings} dbTeam={dbTeam} setDbTeam={setDbTeam} dbView={dbView} setDbView={setDbView} />}
+              {mainTab === "mensajes" && <ConversationsPanel />}
             </ErrorBoundary>
           </div>
         </main>
       </div>
+      <ChatWidget />
     </div>
   );
 }
