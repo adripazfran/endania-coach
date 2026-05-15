@@ -2090,9 +2090,12 @@ function RegistryPanel({ players, setPlayers, teams, setTeams, trainings = [], m
 
       {/* ════════════════ MODALS ════════════════ */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          style={{padding: modal === "viewPlayer" ? "12px" : "16px"}}
           onClick={closeModal}>
-          <div className={cn("w-full overflow-hidden rounded-3xl bg-white shadow-2xl", modal === "viewPlayer" ? "max-w-2xl" : "max-w-lg")}
+          <div className={cn("w-full overflow-hidden rounded-3xl bg-white shadow-2xl",
+            modal === "viewPlayer" ? "h-full flex flex-col" : "max-w-lg")}
+            style={modal === "viewPlayer" ? {maxWidth:"1280px", maxHeight:"calc(100vh - 24px)"} : {}}
             onClick={(e) => e.stopPropagation()}>
 
             {/* ── Visor de ficha completa ── */}
@@ -2101,13 +2104,14 @@ function RegistryPanel({ players, setPlayers, teams, setTeams, trainings = [], m
               const isMyTeam = p.team === MY_TEAM;
               const age = calculateAge(p.birthDate);
               const posColors = {
-                "Portera":  "bg-amber-100 text-amber-800 border-amber-300",
-                "Ala":      "bg-sky-100 text-sky-800 border-sky-300",
-                "Pivot":    "bg-violet-100 text-violet-800 border-violet-300",
-                "Cierre":   "bg-emerald-100 text-emerald-800 border-emerald-300",
-                "Universal":"bg-rose-100 text-rose-800 border-rose-300",
+                "Portera":  { badge:"bg-amber-100 text-amber-800 border-amber-300",   dot:"#f59e0b" },
+                "Ala":      { badge:"bg-sky-100 text-sky-800 border-sky-300",         dot:"#0ea5e9" },
+                "Pivot":    { badge:"bg-violet-100 text-violet-800 border-violet-300",dot:"#8b5cf6" },
+                "Cierre":   { badge:"bg-emerald-100 text-emerald-800 border-emerald-300",dot:"#10b981" },
+                "Universal":{ badge:"bg-rose-100 text-rose-800 border-rose-300",      dot:"#f43f5e" },
               };
-              const posColor = posColors[p.pos] || "bg-slate-100 text-slate-700 border-slate-300";
+              const posStyle = posColors[p.pos] || { badge:"bg-slate-100 text-slate-700 border-slate-300", dot:"#94a3b8" };
+              const posColor = posStyle.badge;
 
               // ── Stats (MY_TEAM only) ─────────────────────────────────────
               const now2 = new Date();
@@ -2266,142 +2270,281 @@ function RegistryPanel({ players, setPlayers, teams, setTeams, trainings = [], m
                 win.document.close(); win.print();
               };
 
+              // ── Mini sparkline RPE (últimas 8 sesiones) ──────────────
+              const last8 = myT.slice(-8);
+              const rpeColor = (v) => v >= 7 ? "#ef4444" : v >= 5 ? "#f59e0b" : "#10b981";
+
+              // ── V/E/D donut SVG ───────────────────────────────────────
+              const donutR = 42, donutCx = 56, donutCy = 56;
+              const circ = 2 * Math.PI * donutR;
+              const vLen = totM > 0 ? (w2/totM)*circ : 0;
+              const dLen = totM > 0 ? (d2/totM)*circ : 0;
+              const lLen = totM > 0 ? (l2/totM)*circ : 0;
+
               return (
-                <div className="max-h-[92vh] overflow-y-auto">
-                  {/* ── Header ── */}
-                  <div className="relative bg-gradient-to-br from-[#061a3f] via-[#0c3070] to-[#08285f] px-8 pt-10 pb-20 text-center">
-                    <button type="button" onClick={closeModal}
-                      className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
-                    {isMyTeam && <span className="absolute left-4 top-4 rounded-xl bg-amber-400/20 border border-amber-400/40 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-300">★ {MY_TEAM}</span>}
-                    <div className="mx-auto mb-4 h-32 w-32 overflow-hidden rounded-3xl border-4 border-white/30 shadow-2xl">
+                <>
+                  {/* ── HEADER compacto ── */}
+                  <div className="shrink-0 bg-gradient-to-r from-[#061a3f] via-[#0c3070] to-[#08285f] px-6 py-4 flex items-center gap-5">
+                    <div className="shrink-0 h-16 w-16 overflow-hidden rounded-2xl border-2 border-white/30 shadow-lg">
                       <PlayerAvatar player={p} size="h-full w-full" />
                     </div>
-                    <p className="text-4xl font-black text-white">{p.name}</p>
-                    <p className="mt-1 text-xl font-bold text-white/70">{p.surname}</p>
-                    <div className="mt-3 flex items-center justify-center gap-3">
-                      <span className="rounded-xl bg-white/20 px-4 py-1.5 text-lg font-black text-white">#{p.dorsal}</span>
-                      <span className={cn("rounded-xl border px-4 py-1.5 text-sm font-black", posColor)}>{p.pos}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-2xl font-black text-white">{p.name} {p.surname}</h2>
+                        {isMyTeam && <span className="rounded-lg bg-amber-400/25 border border-amber-400/40 px-2 py-0.5 text-[10px] font-black uppercase text-amber-300">★ Mi equipo</span>}
+                      </div>
+                      <div className="mt-1 flex items-center gap-3 flex-wrap">
+                        <span className="rounded-lg bg-white/20 px-2.5 py-0.5 text-sm font-black text-white">#{p.dorsal}</span>
+                        <span className={cn("rounded-lg border px-2.5 py-0.5 text-xs font-black", posColor)}>{p.pos}</span>
+                        <span className="text-sm text-white/60">{p.team||MY_TEAM}</span>
+                        {age && <span className="text-sm text-white/60">{age} años · {p.birthDate}</span>}
+                      </div>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      {isMyTeam && <>
+                        <button type="button" onClick={doExportCSV} className="rounded-xl border border-emerald-400/50 bg-emerald-500/20 px-3 py-2 text-xs font-black text-emerald-300 hover:bg-emerald-500/30">↓ CSV</button>
+                        <button type="button" onClick={doExportPDF} className="rounded-xl border border-sky-400/50 bg-sky-500/20 px-3 py-2 text-xs font-black text-sky-300 hover:bg-sky-500/30">↓ PDF</button>
+                      </>}
+                      <button type="button" onClick={() => { closeModal(); setTimeout(() => openModal("editPlayer", p), 50); }}
+                        className="rounded-xl border border-violet-400/50 bg-violet-500/20 px-3 py-2 text-xs font-black text-violet-300 hover:bg-violet-500/30">✏️ Editar</button>
+                      <button type="button" onClick={closeModal}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white hover:bg-white/20">✕</button>
                     </div>
                   </div>
 
-                  {/* ── Datos básicos flotantes ── */}
-                  <div className="-mt-10 mx-5 mb-5 overflow-hidden rounded-2xl bg-white shadow-xl">
-                    <div className="grid grid-cols-3 divide-x divide-slate-100 text-center">
-                      {[
-                        { label:"Edad",      val: age||"—",        sub: p.birthDate||"" },
-                        { label:"Equipo",    val: p.team||MY_TEAM, sub: "" },
-                        { label:"Posición",  val: p.pos,           sub: "" },
-                      ].map(({label,val,sub})=>(
-                        <div key={label} className="py-5 flex flex-col items-center justify-center">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
-                          <p className="mt-1 text-xl font-black text-slate-900 leading-tight text-center px-2">{val}</p>
-                          {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* ── Estadísticas MY_TEAM ── */}
+                  {/* ── BODY: 2 columnas ── */}
                   {isMyTeam ? (
-                    <div className="mx-5 mb-4 space-y-4">
+                    <div className="flex flex-1 overflow-hidden divide-x divide-slate-100">
 
-                      {/* Entrenamientos */}
-                      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-                        <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2.5 text-center">
-                          <p className="text-xs font-black uppercase tracking-widest text-white">🏋️ Entrenamientos — Temporada</p>
+                      {/* ═══ COLUMNA IZQUIERDA: Entrenamientos ═══ */}
+                      <div className="flex flex-col flex-1 overflow-hidden p-5 gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1 flex-1 rounded-full bg-violet-200"/>
+                          <p className="text-xs font-black uppercase tracking-widest text-violet-600">🏋️ Entrenamientos — Temporada</p>
+                          <div className="h-1 flex-1 rounded-full bg-violet-200"/>
                         </div>
-                        <div className="grid grid-cols-3 gap-3 p-4">
+
+                        {/* KPIs principales */}
+                        <div className="grid grid-cols-4 gap-2.5 shrink-0">
                           {[
-                            { label:"Sesiones",        val: totalSess,        color:"text-violet-700"  },
-                            { label:"UA Total",         val: totalUA2,         color:"text-amber-700"   },
-                            { label:"UA Media/sesión",  val: avgUA2,           color:"text-amber-600"   },
-                            { label:"RPE Medio",        val: avgRpe2||"—",     color:"text-rose-700"    },
-                            { label:"RPE Máximo",       val: maxRpe2,          color:"text-rose-800"    },
-                            { label:"RPE Mínimo",       val: minRpe2,          color:"text-emerald-700" },
-                            { label:"Min. Real Total",  val: `${totalRealMin2}'`, color:"text-sky-700"  },
-                            { label:"Min. Efectivo",    val: `${totalEffMin2}'`,  color:"text-sky-600"  },
-                            { label:"Asis. media",      val: avgAtt2||"—",    color:"text-slate-700"   },
-                          ].map(({label,val,color})=>(
-                            <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-center">
-                              <p className={cn("text-2xl font-black", color)}>{val}</p>
+                            { label:"Sesiones",    val:totalSess,            bg:"bg-violet-50 border-violet-200", txt:"text-violet-800" },
+                            { label:"UA Total",    val:totalUA2,             bg:"bg-amber-50 border-amber-200",   txt:"text-amber-800"  },
+                            { label:"UA / sesión", val:avgUA2,               bg:"bg-amber-50 border-amber-200",   txt:"text-amber-700"  },
+                            { label:"RPE medio",   val:avgRpe2||"—",         bg:"bg-rose-50 border-rose-200",     txt:"text-rose-700"   },
+                          ].map(({label,val,bg,txt})=>(
+                            <div key={label} className={cn("rounded-2xl border p-3 text-center", bg)}>
+                              <p className={cn("text-3xl font-black", txt)}>{val}</p>
                               <p className="mt-0.5 text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p>
                             </div>
                           ))}
                         </div>
+
+                        {/* KPIs secundarios */}
+                        <div className="grid grid-cols-5 gap-2 shrink-0">
+                          {[
+                            { label:"RPE máx.",    val:maxRpe2,                   txt:"text-rose-600"    },
+                            { label:"RPE mín.",    val:minRpe2,                   txt:"text-emerald-600" },
+                            { label:"Min. reales", val:`${totalRealMin2}'`,        txt:"text-sky-700"     },
+                            { label:"Min. efect.", val:`${totalEffMin2}'`,         txt:"text-sky-600"     },
+                            { label:"Asistencia",  val:avgAtt2||"—",             txt:"text-slate-600"   },
+                          ].map(({label,val,txt})=>(
+                            <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 p-2.5 text-center">
+                              <p className={cn("text-xl font-black", txt)}>{val}</p>
+                              <p className="mt-0.5 text-[8px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Sparkline RPE últimas sesiones */}
+                        {last8.length > 0 && (
+                          <div className="shrink-0 rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                            <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">RPE últimas {last8.length} sesiones</p>
+                            <div className="flex items-end justify-center gap-1.5 h-12">
+                              {last8.map((t,i)=>{
+                                const h = Math.max(8, ((t.avgRpe||0)/10)*100);
+                                return (
+                                  <div key={i} className="flex flex-col items-center gap-0.5 flex-1">
+                                    <span className="text-[7px] font-black text-slate-500">{t.avgRpe||0}</span>
+                                    <div className="w-full rounded-t-md" style={{height:`${h}%`, background:rpeColor(t.avgRpe||0), minHeight:"4px"}}/>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="mt-1.5 flex justify-center gap-3">
+                              {[["#10b981","< 5"],["#f59e0b","5–6"],["#ef4444","≥ 7"]].map(([c,l])=>(
+                                <div key={l} className="flex items-center gap-1">
+                                  <div className="h-2 w-2 rounded-full" style={{background:c}}/>
+                                  <span className="text-[8px] text-slate-400">{l}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Conceptos */}
                         {topConcepts2.length > 0 && (
-                          <div className="border-t border-slate-100 px-4 pb-4">
-                            <p className="mb-2 pt-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Contenidos más trabajados</p>
-                            <div className="flex flex-wrap justify-center gap-2">
+                          <div className="flex-1 rounded-2xl bg-slate-50 border border-slate-100 p-3 min-h-0 overflow-hidden">
+                            <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Contenidos más trabajados</p>
+                            <div className="flex flex-wrap gap-1.5 overflow-hidden" style={{maxHeight:"calc(100% - 24px)"}}>
                               {topConcepts2.map(([c,n])=>(
-                                <span key={c} className="rounded-xl bg-violet-100 border border-violet-200 px-3 py-1 text-xs font-black text-violet-700">{c} <span className="opacity-60">×{n}</span></span>
+                                <span key={c} className="rounded-xl bg-violet-100 border border-violet-200 px-2.5 py-1 text-[10px] font-black text-violet-700 whitespace-nowrap">
+                                  {c} <span className="opacity-50">×{n}</span>
+                                </span>
                               ))}
                             </div>
                           </div>
                         )}
                       </div>
 
-                      {/* Partidos */}
-                      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-                        <div className="bg-gradient-to-r from-sky-600 to-blue-700 px-4 py-2.5 text-center">
-                          <p className="text-xs font-black uppercase tracking-widest text-white">⚽ Partidos — Temporada</p>
+                      {/* ═══ COLUMNA DERECHA: Partidos ═══ */}
+                      <div className="flex flex-col flex-1 overflow-hidden p-5 gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1 flex-1 rounded-full bg-sky-200"/>
+                          <p className="text-xs font-black uppercase tracking-widest text-sky-600">⚽ Partidos — Temporada</p>
+                          <div className="h-1 flex-1 rounded-full bg-sky-200"/>
                         </div>
-                        <div className="grid grid-cols-3 gap-3 p-4">
+
+                        {/* Donut V/E/D + KPIs principales */}
+                        <div className="shrink-0 flex items-center gap-4">
+                          {/* Donut */}
+                          <div className="shrink-0">
+                            <svg width="112" height="112" viewBox="0 0 112 112">
+                              <circle cx={donutCx} cy={donutCy} r={donutR} fill="none" stroke="#f1f5f9" strokeWidth="14"/>
+                              {totM > 0 ? (<>
+                                {/* Victorias */}
+                                <circle cx={donutCx} cy={donutCy} r={donutR} fill="none" stroke="#10b981" strokeWidth="14"
+                                  strokeDasharray={`${vLen} ${circ}`} strokeDashoffset={circ/4}
+                                  transform={`rotate(-90 ${donutCx} ${donutCy})`}/>
+                                {/* Empates */}
+                                <circle cx={donutCx} cy={donutCy} r={donutR} fill="none" stroke="#f59e0b" strokeWidth="14"
+                                  strokeDasharray={`${dLen} ${circ}`}
+                                  style={{strokeDashoffset: -(vLen - circ/4)}}
+                                  transform={`rotate(-90 ${donutCx} ${donutCy})`}/>
+                                {/* Derrotas */}
+                                <circle cx={donutCx} cy={donutCy} r={donutR} fill="none" stroke="#ef4444" strokeWidth="14"
+                                  strokeDasharray={`${lLen} ${circ}`}
+                                  style={{strokeDashoffset: -((vLen+dLen) - circ/4)}}
+                                  transform={`rotate(-90 ${donutCx} ${donutCy})`}/>
+                              </>) : (
+                                <text x={donutCx} y={donutCy+5} textAnchor="middle" fontSize="9" fill="#94a3b8" fontWeight="900">SIN DATOS</text>
+                              )}
+                              <text x={donutCx} y={donutCy-6} textAnchor="middle" fontSize="18" fontWeight="900" fill="#0f172a">{winPct2}%</text>
+                              <text x={donutCx} y={donutCy+10} textAnchor="middle" fontSize="8" fontWeight="700" fill="#94a3b8">VICTORIAS</text>
+                            </svg>
+                            <div className="flex justify-center gap-2 -mt-1">
+                              {[["#10b981","V",w2],["#f59e0b","E",d2],["#ef4444","D",l2]].map(([c,l,n])=>(
+                                <div key={l} className="flex items-center gap-1">
+                                  <div className="h-2 w-2 rounded-full" style={{background:c}}/>
+                                  <span className="text-[9px] font-black text-slate-500">{l} {n}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          {/* KPIs globales */}
+                          <div className="flex-1 grid grid-cols-2 gap-2">
+                            {[
+                              { label:"Partidos",        val:totM,                            bg:"bg-sky-50 border-sky-200",       txt:"text-sky-800"     },
+                              { label:"Goles favor",     val:gf2,                             bg:"bg-blue-50 border-blue-200",     txt:"text-blue-800"    },
+                              { label:"Goles contra",    val:gc2,                             bg:"bg-red-50 border-red-200",       txt:"text-red-700"     },
+                              { label:"Dif. goles",      val:gDiff>=0?`+${gDiff}`:gDiff,      bg: gDiff>=0?"bg-emerald-50 border-emerald-200":"bg-rose-50 border-rose-200",
+                                                          txt: gDiff>=0?"text-emerald-700":"text-rose-700" },
+                            ].map(({label,val,bg,txt})=>(
+                              <div key={label} className={cn("rounded-xl border p-2.5 text-center", bg)}>
+                                <p className={cn("text-2xl font-black", txt)}>{val}</p>
+                                <p className="text-[8px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Goles GF vs GC barras */}
+                        {totM > 0 && (
+                          <div className="shrink-0 rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                            <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Goles a favor vs en contra</p>
+                            {[
+                              { label:"A favor",  val:gf2, color:"#3b82f6" },
+                              { label:"En contra",val:gc2, color:"#ef4444" },
+                            ].map(({label,val,color})=>{
+                              const pct = Math.max(gf2,gc2)>0 ? Math.round((val/Math.max(gf2,gc2))*100) : 0;
+                              return (
+                                <div key={label} className="mb-1.5 last:mb-0">
+                                  <div className="mb-0.5 flex justify-between text-[9px] font-black text-slate-500">
+                                    <span>{label}</span><span>{val}</span>
+                                  </div>
+                                  <div className="h-4 w-full overflow-hidden rounded-lg bg-slate-200">
+                                    <div className="h-full rounded-lg" style={{width:`${pct}%`,background:color}}/>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* KPIs de juego */}
+                        <div className="grid grid-cols-3 gap-2 shrink-0">
                           {[
-                            { label:"Partidos",          val: totM,                              color:"text-sky-700"     },
-                            { label:"% Victoria",        val: `${winPct2}%`,                    color:"text-emerald-700" },
-                            { label:"V / E / D",         val: `${w2} / ${d2} / ${l2}`,          color:"text-slate-700"   },
-                            { label:"Goles a favor",     val: gf2,                               color:"text-blue-700"    },
-                            { label:"Goles en contra",   val: gc2,                               color:"text-red-700"     },
-                            { label:"Dif. goles",        val: gDiff>=0?`+${gDiff}`:gDiff,        color: gDiff>=0?"text-emerald-700":"text-red-700" },
-                            { label:"Tiros/partido",     val: avgSOn,                            color:"text-indigo-700"  },
-                            { label:"Recup./partido",    val: avgRec,                            color:"text-teal-700"    },
-                            { label:"Pérdidas/partido",  val: avgLos,                            color:"text-orange-700"  },
-                            { label:"Amarillas",         val: yel,                               color:"text-amber-700"   },
-                            { label:"Rojas",             val: red2,                              color:"text-red-700"     },
-                          ].map(({label,val,color})=>(
-                            <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-center">
-                              <p className={cn("text-2xl font-black leading-tight", color)}>{val}</p>
-                              <p className="mt-0.5 text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+                            { label:"Tiros/partido",   val:avgSOn,  txt:"text-indigo-700" },
+                            { label:"Recup./partido",  val:avgRec,  txt:"text-teal-700"   },
+                            { label:"Pérd./partido",   val:avgLos,  txt:"text-orange-700" },
+                          ].map(({label,val,txt})=>(
+                            <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 p-2.5 text-center">
+                              <p className={cn("text-xl font-black", txt)}>{val}</p>
+                              <p className="text-[8px] font-black uppercase tracking-wide text-slate-400">{label}</p>
                             </div>
                           ))}
                         </div>
+
+                        {/* Tiros totales: barra apilada */}
                         {totM > 0 && (
-                          <div className="px-4 pb-4">
-                            <div className="flex overflow-hidden rounded-xl h-6">
-                              {[[w2,"V","bg-emerald-500"],[d2,"E","bg-amber-400"],[l2,"D","bg-rose-500"]].map(([n,lbl,col])=> n>0 &&
-                                <div key={lbl} className={cn("flex items-center justify-center text-xs font-black text-white",col)} style={{flex:n}}>{lbl} {n}</div>
-                              )}
+                          <div className="shrink-0 rounded-2xl bg-slate-50 border border-slate-100 p-3">
+                            <p className="mb-2 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Distribución de tiros totales</p>
+                            <div className="flex h-5 overflow-hidden rounded-lg">
+                              {[
+                                {val:sOn,  color:"#10b981", label:"Portería"},
+                                {val:sPost,color:"#f59e0b", label:"Palo"},
+                                {val:sOff, color:"#ef4444", label:"Fuera"},
+                              ].map(({val,color,label})=>{
+                                const total = sOn+sPost+sOff||1;
+                                const pct = Math.round((val/total)*100);
+                                return pct>0 && <div key={label} className="flex items-center justify-center text-[8px] font-black text-white" style={{flex:val,background:color}}>{pct>8?`${pct}%`:""}</div>;
+                              })}
+                            </div>
+                            <div className="mt-1.5 flex justify-center gap-3">
+                              {[["#10b981","Portería",sOn],["#f59e0b","Palo",sPost],["#ef4444","Fuera",sOff]].map(([c,l,n])=>(
+                                <div key={l} className="flex items-center gap-1">
+                                  <div className="h-2 w-2 rounded-full" style={{background:c}}/>
+                                  <span className="text-[8px] text-slate-400">{l}: {n}</span>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}
+
+                        {/* Disciplina */}
+                        <div className="shrink-0 grid grid-cols-2 gap-2">
+                          {[
+                            { label:"Amarillas", val:yel,  bg:"bg-amber-50 border-amber-200", txt:"text-amber-700" },
+                            { label:"Rojas",     val:red2, bg:"bg-red-50 border-red-200",     txt:"text-red-700"   },
+                          ].map(({label,val,bg,txt})=>(
+                            <div key={label} className={cn("rounded-xl border p-2.5 text-center", bg)}>
+                              <p className={cn("text-2xl font-black", txt)}>{val}</p>
+                              <p className="text-[8px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="mx-5 mb-5 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-8 text-center">
-                      <p className="text-3xl mb-2">🔒</p>
-                      <p className="text-sm font-black text-slate-500">Estadísticas detalladas</p>
-                      <p className="mt-1 text-xs text-slate-400">Solo disponibles para jugadoras de <span className="font-black text-slate-600">{MY_TEAM}</span></p>
+                    /* ─── Ficha básica para equipos rivales ─── */
+                    <div className="flex flex-1 items-center justify-center p-10">
+                      <div className="text-center">
+                        <p className="text-4xl mb-3">🔒</p>
+                        <p className="text-lg font-black text-slate-500">Estadísticas detalladas</p>
+                        <p className="mt-1 text-sm text-slate-400">Solo disponibles para jugadoras de <span className="font-black text-slate-600">{MY_TEAM}</span></p>
+                      </div>
                     </div>
                   )}
-
-                  {/* ── Botones ── */}
-                  <div className="border-t border-slate-100 px-5 pb-6 pt-3 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => { closeModal(); setTimeout(() => openModal("editPlayer", p), 50); }}
-                      className="flex-1 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-3 text-sm font-black text-white transition hover:from-violet-400 hover:to-fuchsia-500">
-                      ✏️ Editar ficha
-                    </button>
-                    {isMyTeam && (<>
-                      <button type="button" onClick={doExportCSV}
-                        className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100">
-                        ↓ CSV
-                      </button>
-                      <button type="button" onClick={doExportPDF}
-                        className="rounded-2xl border border-sky-300 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100">
-                        ↓ PDF
-                      </button>
-                    </>)}
-                  </div>
-                </div>
+                </>
               );
             })()}
 
@@ -5166,7 +5309,7 @@ function DatabasePanel({ teams, players, matches, trainings, dbTeam, setDbTeam, 
 
 export default function App() {
   const [mainTab, setMainTab] = useState("registro");
-  const [offlineTab, setOfflineTab] = useState("Analisis video");
+  const [offlineTab, setOfflineTab] = useState("Ficha scouting");
   const [liveTab, setLiveTab] = useState("Directo");
   const [sessionTab, setSessionTab] = useState("registro");
   const [regTab, setRegTab] = useState("Alta");
@@ -5340,10 +5483,9 @@ export default function App() {
             <ErrorBoundary>
               {mainTab === "offline" && (
                 <div className="space-y-5">
-                  {/* ── 4 Tabs ── */}
-                  <div className="grid grid-cols-4 gap-2">
+                  {/* ── 3 Tabs ── */}
+                  <div className="grid grid-cols-3 gap-2">
                     {[
-                      { key: "Analisis video",   label: "▶ Análisis vídeo"   },
                       { key: "Ficha scouting",   label: "▣ Ficha scouting"   },
                       { key: "Prepartido",       label: "⚑ Prepartido"       },
                       { key: "Recomendacion IA", label: "◎ Recomendación IA" },
@@ -5359,7 +5501,6 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  {offlineTab === "Analisis video"   && <OfflineVideoPanel consignas={consignas} setConsignas={setConsignas} fileName={fileName} setFileName={setFileName} progress={progress} setProgress={setProgress} focus={focus} setFocus={setFocus} />}
                   {offlineTab === "Ficha scouting"   && <ScoutingPanel matches={seasonMatches} scoutMatchId={scoutMatchId} setScoutMatchId={setScoutMatchId} saveScouting={saveScouting} />}
                   {offlineTab === "Prepartido"       && <PreMatchPanel teams={seasonTeams} />}
                   {offlineTab === "Recomendacion IA" && <RecommendationPanel matches={seasonMatches} teamName={MY_TEAM} />}
