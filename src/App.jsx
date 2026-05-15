@@ -1959,181 +1959,257 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Layout: equipos 2 cols (9 filas para 18) | jugadoras 4 cols (5 filas para 20) */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[480px_1fr]">
+    <div className="space-y-5">
 
-        {/* ── Equipos ── */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Equipos</p>
-              <p className="font-black text-slate-900">{sortedTeams.length} registrados</p>
-            </div>
-            <button type="button" onClick={() => openModal("newTeam")}
-              className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:from-emerald-400 hover:to-teal-500">
-              + Nuevo equipo
-            </button>
+      {/* ════════════════ EQUIPOS — PARTE SUPERIOR ════════════════ */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Equipos</p>
+            <p className="font-black text-slate-900">{sortedTeams.length} registrados</p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {sortedTeams.map((team) => {
-              const count = players.filter((p) => p.team === team.name).length;
-              const isMine = team.name === MY_TEAM;
-              const isSelected = team.id === selectedTeamId;
-              return (
-                <button key={team.id} type="button" onClick={() => setSelectedTeamId(team.id)}
-                  className={cn(
-                    "group w-full overflow-hidden rounded-2xl border text-left transition hover:-translate-y-0.5",
-                    isSelected ? "border-violet-400 shadow-lg ring-2 ring-violet-200" : "border-slate-200 bg-white shadow-sm hover:shadow-md"
-                  )}>
-                  <div className="flex items-center gap-3 bg-gradient-to-r from-slate-700 to-slate-900 px-3 py-3">
-                    {team.logoUrl
-                      ? <img src={team.logoUrl} className="h-11 w-11 shrink-0 rounded-xl object-cover" alt={team.name} />
-                      : <div className="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 p-[2.5px]">
-                          <div className="flex h-full w-full items-center justify-center rounded-[9px] bg-red-50 text-sm font-black text-red-900">{team.logo || initials(team.name)}</div>
-                        </div>
-                    }
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-black text-white">
-                        {isMine && <span className="mr-1 text-amber-300">★</span>}{team.name}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-white/60">{team.category} · {count} jug.</p>
-                    </div>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); openModal("editTeam", team); }}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/25 bg-white/10 text-xs opacity-0 transition group-hover:opacity-100 hover:bg-white/25">
-                      ✏️
-                    </button>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          <button type="button" onClick={() => openModal("newTeam")}
+            className="rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:from-emerald-400 hover:to-teal-500">
+            + Nuevo equipo
+          </button>
         </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {sortedTeams.map((team) => {
+            const count = players.filter((p) => p.team === team.name).length;
+            const isMine = team.name === MY_TEAM;
+            const isSelected = team.id === selectedTeamId;
+            return (
+              <button key={team.id} type="button" onClick={() => setSelectedTeamId(team.id)}
+                className={cn(
+                  "group w-full overflow-hidden rounded-2xl border text-left transition hover:-translate-y-0.5",
+                  isSelected
+                    ? "border-violet-400 shadow-lg ring-2 ring-violet-300"
+                    : "border-slate-200 bg-white shadow-sm hover:shadow-md"
+                )}>
+                <div className={cn(
+                  "flex items-center gap-3 px-3 py-3",
+                  isSelected
+                    ? "bg-gradient-to-r from-violet-700 to-fuchsia-700"
+                    : "bg-gradient-to-r from-slate-700 to-slate-900"
+                )}>
+                  {team.logoUrl
+                    ? <img src={team.logoUrl} className="h-10 w-10 shrink-0 rounded-xl object-cover" alt={team.name} />
+                    : <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 p-[2px]">
+                        <div className="flex h-full w-full items-center justify-center rounded-[9px] bg-red-50 text-xs font-black text-red-900">{team.logo || initials(team.name)}</div>
+                      </div>
+                  }
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black text-white">
+                      {isMine && <span className="mr-1 text-amber-300">★</span>}{team.name}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-white/60">{team.category} · {count} jug.</p>
+                  </div>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); openModal("editTeam", team); }}
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-white/25 bg-white/10 text-[10px] opacity-0 transition group-hover:opacity-100 hover:bg-white/25">
+                    ✏️
+                  </button>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        {/* ── Jugadoras ── */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Jugadoras</p>
-              <p className="font-black text-slate-900">
-                {selectedTeam
-                  ? <><span className="text-violet-600">{selectedTeam.name}</span> · {teamPlayers.length} registradas</>
-                  : "Selecciona un equipo"}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {selectedTeam && (
-                <>
-                  <button type="button" onClick={exportCSV}
-                    className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">
-                    ↓ CSV
-                  </button>
-                  <button type="button" onClick={exportPDF}
-                    className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700">
-                    ↓ PDF
-                  </button>
-                </>
-              )}
-              {selectedTeam && (
+      {/* ════════════════ JUGADORAS — PARTE INFERIOR ════════════════ */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Jugadoras</p>
+            <p className="font-black text-slate-900">
+              {selectedTeam
+                ? <><span className="text-violet-600">{selectedTeam.name}</span> · {teamPlayers.length} registradas</>
+                : "Selecciona un equipo arriba"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedTeam && (
+              <>
+                <button type="button" onClick={exportCSV}
+                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700">
+                  ↓ CSV
+                </button>
+                <button type="button" onClick={exportPDF}
+                  className="rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700">
+                  ↓ PDF
+                </button>
                 <button type="button" onClick={() => openModal("newPlayer")}
                   className="rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 px-4 py-2 text-sm font-black text-white shadow-sm transition hover:from-violet-400 hover:to-fuchsia-500">
                   + Nueva jugadora
                 </button>
-              )}
-            </div>
+              </>
+            )}
           </div>
-          {selectedTeam ? (
-            teamPlayers.length > 0
-              ? <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-                  {teamPlayers.map((p) => (
-                    <div key={p.id} className="group relative flex flex-col items-center gap-1.5 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md">
-                      <button type="button" onClick={() => openModal("editPlayer", p)}
-                        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-[10px] opacity-0 transition group-hover:opacity-100 hover:border-violet-300 hover:bg-violet-50">
-                        ✏️
-                      </button>
-                      <PlayerAvatar player={p} size="h-14 w-14" />
-                      <div className="w-full">
-                        <p className="text-[10px] font-black text-slate-400">#{p.dorsal}</p>
-                        <p className="w-full truncate text-xs font-black leading-tight text-slate-900">{p.name}</p>
-                        <p className="w-full truncate text-[10px] text-slate-500">{p.surname}</p>
-                        <span className="mt-1 inline-block rounded-lg bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{p.pos}</span>
-                        <p className="mt-0.5 text-[10px] text-slate-400">{p.birthDate}</p>
-                        <p className="text-[10px] font-bold text-slate-500">{calculateAge(p.birthDate)} años</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              : <Card className="p-8 text-center text-sm text-slate-400">Sin jugadoras. Pulsa "+ Nueva jugadora" para añadir.</Card>
-          ) : (
-            <Card className="p-10 text-center">
-              <p className="text-4xl">👈</p>
-              <p className="mt-3 text-sm font-bold text-slate-500">Selecciona un equipo para ver sus jugadoras</p>
-            </Card>
-          )}
         </div>
+
+        {selectedTeam ? (
+          teamPlayers.length > 0
+            ? <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+                {teamPlayers.map((p) => (
+                  <div key={p.id} className="group relative flex flex-col items-center gap-1.5 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md">
+                    {/* Botón visor (lupa) */}
+                    <button type="button" onClick={() => openModal("viewPlayer", p)}
+                      className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs opacity-0 transition group-hover:opacity-100 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+                      title="Ver ficha completa">
+                      🔍
+                    </button>
+                    {/* Botón editar */}
+                    <button type="button" onClick={() => openModal("editPlayer", p)}
+                      className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-[10px] opacity-0 transition group-hover:opacity-100 hover:border-violet-300 hover:bg-violet-50"
+                      title="Editar jugadora">
+                      ✏️
+                    </button>
+                    <PlayerAvatar player={p} size="h-14 w-14" />
+                    <div className="w-full">
+                      <p className="text-[10px] font-black text-slate-400">#{p.dorsal}</p>
+                      <p className="w-full truncate text-xs font-black leading-tight text-slate-900">{p.name}</p>
+                      <p className="w-full truncate text-[10px] text-slate-500">{p.surname}</p>
+                      <span className="mt-1 inline-block rounded-lg bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{p.pos}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            : <Card className="p-8 text-center text-sm text-slate-400">Sin jugadoras. Pulsa "+ Nueva jugadora" para añadir.</Card>
+        ) : (
+          <Card className="p-10 text-center">
+            <p className="text-4xl">☝️</p>
+            <p className="mt-3 text-sm font-bold text-slate-500">Selecciona un equipo arriba para ver sus jugadoras</p>
+          </Card>
+        )}
       </div>
 
-      {/* Modal add / edit */}
+      {/* ════════════════ MODALS ════════════════ */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
           onClick={closeModal}>
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
+          <div className={cn("w-full overflow-hidden rounded-3xl bg-white shadow-2xl", modal === "viewPlayer" ? "max-w-sm" : "max-w-lg")}
             onClick={(e) => e.stopPropagation()}>
-            <div className={cn("px-6 py-5", isTeamModal ? "bg-gradient-to-r from-emerald-500 to-teal-600" : "bg-gradient-to-r from-violet-500 to-fuchsia-600")}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-black text-white">
-                  {modal === "newTeam" && "Nuevo equipo"}
-                  {modal === "editTeam" && "Editar equipo"}
-                  {modal === "newPlayer" && `Nueva jugadora · ${selectedTeam?.name}`}
-                  {modal === "editPlayer" && "Editar jugadora"}
-                </h2>
-                <button type="button" onClick={closeModal}
-                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
-              </div>
-            </div>
-            <div className="space-y-4 p-6">
-              {isTeamModal ? (
+
+            {/* ── Visor de ficha completa ── */}
+            {modal === "viewPlayer" && editTarget && (() => {
+              const p = editTarget;
+              const age = calculateAge(p.birthDate);
+              const posColors = {
+                "Portera":  "bg-amber-100 text-amber-800 border-amber-300",
+                "Ala":      "bg-sky-100 text-sky-800 border-sky-300",
+                "Pivot":    "bg-violet-100 text-violet-800 border-violet-300",
+                "Cierre":   "bg-emerald-100 text-emerald-800 border-emerald-300",
+                "Universal":"bg-rose-100 text-rose-800 border-rose-300",
+              };
+              const posColor = posColors[p.pos] || "bg-slate-100 text-slate-700 border-slate-300";
+              return (
                 <>
-                  <div className="flex items-start gap-4">
-                    <PhotoUpload photoUrl={formData.logoUrl || ""} onChange={(url) => setF("logoUrl", url)} label="Logo" emptyText="Sin logo" size="h-20 w-20" />
-                    <div className="flex-1 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <MiniInput label="Nombre del equipo" value={formData.name || ""} onChange={(v) => setF("name", v)} />
-                        <MiniInput label="Siglas" value={formData.logo || ""} onChange={(v) => setF("logo", v)} />
+                  {/* Header degradado */}
+                  <div className="relative bg-gradient-to-br from-[#061a3f] via-[#0c3070] to-[#08285f] px-6 pt-8 pb-16 text-center">
+                    <button type="button" onClick={closeModal}
+                      className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
+                    <div className="mx-auto mb-3 h-24 w-24 overflow-hidden rounded-2xl border-4 border-white/30 shadow-xl">
+                      <PlayerAvatar player={p} size="h-full w-full" />
+                    </div>
+                    <p className="text-3xl font-black text-white">{p.name}</p>
+                    <p className="text-lg font-bold text-white/70">{p.surname}</p>
+                  </div>
+                  {/* Ficha de datos */}
+                  <div className="-mt-8 mx-4 mb-5 overflow-hidden rounded-2xl bg-white shadow-lg">
+                    <div className="grid grid-cols-3 divide-x divide-slate-100">
+                      <div className="py-4 text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dorsal</p>
+                        <p className="mt-1 text-3xl font-black text-slate-900">#{p.dorsal}</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <SelectBox label="Categoría" value={formData.category || "Senior"} onChange={(v) => setF("category", v)} options={CATEGORY_OPTIONS} />
-                        <MiniInput label="Color principal" value={formData.color || ""} onChange={(v) => setF("color", v)} />
+                      <div className="py-4 text-center">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Edad</p>
+                        <p className="mt-1 text-3xl font-black text-slate-900">{age || "—"}</p>
                       </div>
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Posición</p>
+                        <span className={cn("rounded-xl border px-2.5 py-1 text-xs font-black", posColor)}>{p.pos}</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-slate-100 px-5 py-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-wide text-slate-400">Equipo</span>
+                        <span className="text-sm font-black text-slate-800">{p.team || MY_TEAM}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-wide text-slate-400">Fecha nac.</span>
+                        <span className="text-sm font-bold text-slate-700">{p.birthDate || "—"}</span>
+                      </div>
+                    </div>
+                    <div className="border-t border-slate-100 px-5 pb-5 pt-3 flex gap-2">
+                      <button type="button" onClick={() => { closeModal(); setTimeout(() => openModal("editPlayer", p), 50); }}
+                        className="flex-1 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-2.5 text-sm font-black text-white transition hover:from-violet-400 hover:to-fuchsia-500">
+                        ✏️ Editar ficha
+                      </button>
                     </div>
                   </div>
-                  <button type="button" onClick={saveTeam}
-                    className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 py-3 text-sm font-black text-white transition hover:from-emerald-400 hover:to-teal-500">
-                    {isEditing ? "Guardar cambios" : "+ Añadir equipo"}
-                  </button>
                 </>
-              ) : (
-                <>
-                  <div className="flex items-start gap-4">
-                    <div className="shrink-0">
-                      <PhotoUpload photoUrl={formData.photoUrl || ""} onChange={(url) => setF("photoUrl", url)} size="h-24 w-24" />
-                      {formData.birthDate && <p className="mt-1 text-center text-xs font-bold text-slate-400">{calculateAge(formData.birthDate)} años</p>}
-                    </div>
-                    <div className="flex-1 grid grid-cols-2 gap-3">
-                      <MiniInput label="Nombre" value={formData.name || ""} onChange={(v) => setF("name", v)} />
-                      <MiniInput label="Apellidos" value={formData.surname || ""} onChange={(v) => setF("surname", v)} />
-                      <MiniInput label="Dorsal" value={formData.dorsal || ""} onChange={(v) => setF("dorsal", v)} />
-                      <SelectBox label="Posición" value={formData.pos || "Ala"} onChange={(v) => setF("pos", v)} options={POSITIONS} />
-                      <MiniInput label="Fecha nacimiento" type="date" value={formData.birthDate || ""} onChange={(v) => setF("birthDate", v)} />
-                    </div>
+              );
+            })()}
+
+            {/* ── Add / Edit (equipo o jugadora) ── */}
+            {modal !== "viewPlayer" && (
+              <>
+                <div className={cn("px-6 py-5", isTeamModal ? "bg-gradient-to-r from-emerald-500 to-teal-600" : "bg-gradient-to-r from-violet-500 to-fuchsia-600")}>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-black text-white">
+                      {modal === "newTeam"    && "Nuevo equipo"}
+                      {modal === "editTeam"   && "Editar equipo"}
+                      {modal === "newPlayer"  && `Nueva jugadora · ${selectedTeam?.name}`}
+                      {modal === "editPlayer" && "Editar jugadora"}
+                    </h2>
+                    <button type="button" onClick={closeModal}
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
                   </div>
-                  <button type="button" onClick={savePlayer}
-                    className="w-full rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-3 text-sm font-black text-white transition hover:from-violet-400 hover:to-fuchsia-500">
-                    {isEditing ? "Guardar cambios" : "+ Añadir jugadora"}
-                  </button>
-                </>
-              )}
-            </div>
+                </div>
+                <div className="space-y-4 p-6">
+                  {isTeamModal ? (
+                    <>
+                      <div className="flex items-start gap-4">
+                        <PhotoUpload photoUrl={formData.logoUrl || ""} onChange={(url) => setF("logoUrl", url)} label="Logo" emptyText="Sin logo" size="h-20 w-20" />
+                        <div className="flex-1 space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <MiniInput label="Nombre del equipo" value={formData.name || ""} onChange={(v) => setF("name", v)} />
+                            <MiniInput label="Siglas" value={formData.logo || ""} onChange={(v) => setF("logo", v)} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <SelectBox label="Categoría" value={formData.category || "Senior"} onChange={(v) => setF("category", v)} options={CATEGORY_OPTIONS} />
+                            <MiniInput label="Color principal" value={formData.color || ""} onChange={(v) => setF("color", v)} />
+                          </div>
+                        </div>
+                      </div>
+                      <button type="button" onClick={saveTeam}
+                        className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 py-3 text-sm font-black text-white transition hover:from-emerald-400 hover:to-teal-500">
+                        {isEditing ? "Guardar cambios" : "+ Añadir equipo"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-4">
+                        <div className="shrink-0">
+                          <PhotoUpload photoUrl={formData.photoUrl || ""} onChange={(url) => setF("photoUrl", url)} size="h-24 w-24" />
+                          {formData.birthDate && <p className="mt-1 text-center text-xs font-bold text-slate-400">{calculateAge(formData.birthDate)} años</p>}
+                        </div>
+                        <div className="flex-1 grid grid-cols-2 gap-3">
+                          <MiniInput label="Nombre" value={formData.name || ""} onChange={(v) => setF("name", v)} />
+                          <MiniInput label="Apellidos" value={formData.surname || ""} onChange={(v) => setF("surname", v)} />
+                          <MiniInput label="Dorsal" value={formData.dorsal || ""} onChange={(v) => setF("dorsal", v)} />
+                          <SelectBox label="Posición" value={formData.pos || "Ala"} onChange={(v) => setF("pos", v)} options={POSITIONS} />
+                          <MiniInput label="Fecha nacimiento" type="date" value={formData.birthDate || ""} onChange={(v) => setF("birthDate", v)} />
+                        </div>
+                      </div>
+                      <button type="button" onClick={savePlayer}
+                        className="w-full rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-3 text-sm font-black text-white transition hover:from-violet-400 hover:to-fuchsia-500">
+                        {isEditing ? "Guardar cambios" : "+ Añadir jugadora"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
