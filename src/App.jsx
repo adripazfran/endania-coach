@@ -2065,15 +2065,15 @@ function RegistryPanel({ players, setPlayers, teams, setTeams, trainings = [], m
                       ✏️
                     </button>
                     <PlayerAvatar player={p} size="h-20 w-20" />
-                    <div className="w-full space-y-0.5">
+                    <div className="w-full space-y-1 text-center">
                       <p className="text-xs font-black text-slate-400">#{p.dorsal}</p>
-                      <p className="w-full truncate text-sm font-black leading-tight text-slate-900">{p.name}</p>
-                      <p className="w-full truncate text-xs font-semibold text-slate-500">{p.surname}</p>
-                      <div className="pt-1">
-                        <span className="inline-block rounded-xl bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700 border border-violet-200">{p.pos}</span>
+                      <p className="w-full truncate text-sm font-black leading-tight text-slate-900 text-center">{p.name}</p>
+                      <p className="w-full truncate text-xs font-semibold text-slate-500 text-center">{p.surname}</p>
+                      <div className="flex justify-center pt-1">
+                        <span className="rounded-xl bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700 border border-violet-200">{p.pos}</span>
                       </div>
                       {p.birthDate && (
-                        <p className="text-[10px] text-slate-400 pt-0.5">{calculateAge(p.birthDate)} años</p>
+                        <p className="text-[10px] text-slate-400 text-center">{calculateAge(p.birthDate)} años</p>
                       )}
                     </div>
                   </div>
@@ -2109,38 +2109,170 @@ function RegistryPanel({ players, setPlayers, teams, setTeams, trainings = [], m
               };
               const posColor = posColors[p.pos] || "bg-slate-100 text-slate-700 border-slate-300";
 
-              // ── Estadísticas (solo MY_TEAM) ──────────────────────────────
-              const myTrainings = trainings.filter(t => t.date >= `${new Date().getFullYear()-1}-08-01`);
-              const totalSessions  = myTrainings.length;
-              const avgUA  = totalSessions ? Math.round(myTrainings.reduce((s,t)=>s+(t.ua||0),0)/totalSessions) : 0;
-              const avgRpe = totalSessions ? parseFloat((myTrainings.reduce((s,t)=>s+(t.avgRpe||0),0)/totalSessions).toFixed(1)) : 0;
-              const myMatches  = matches.filter(m => m.teams.includes(MY_TEAM));
-              let wins=0,draws=0,losses=0,gf=0,gc=0;
-              myMatches.forEach(m => {
-                const myStats = getMatchStats(m, MY_TEAM);
-                const rvStats = m.teams[0]===MY_TEAM ? m.b : m.a;
-                gf += myStats.goals; gc += rvStats.goals;
-                if(myStats.goals > rvStats.goals) wins++;
-                else if(myStats.goals === rvStats.goals) draws++;
-                else losses++;
-              });
-              const totalMatches = myMatches.length;
-              const winPct = totalMatches ? Math.round((wins/totalMatches)*100) : 0;
+              // ── Stats (MY_TEAM only) ─────────────────────────────────────
+              const now2 = new Date();
+              const seasonStart2 = `${now2.getMonth()>=7?now2.getFullYear():now2.getFullYear()-1}-08-01`;
+              const myT = trainings.filter(t => t.date >= seasonStart2);
+              const totalSess = myT.length;
+              const totalUA2  = myT.reduce((s,t)=>s+(t.ua||0),0);
+              const avgUA2    = totalSess ? Math.round(totalUA2/totalSess) : 0;
+              const avgRpe2   = totalSess ? parseFloat((myT.reduce((s,t)=>s+(t.avgRpe||0),0)/totalSess).toFixed(1)) : 0;
+              const maxRpe2   = totalSess ? Math.max(...myT.map(t=>t.avgRpe||0)).toFixed(1) : "—";
+              const minRpe2   = totalSess ? Math.min(...myT.filter(t=>(t.avgRpe||0)>0).map(t=>t.avgRpe)).toFixed(1) : "—";
+              const totalRealMin2 = myT.reduce((s,t)=>s+(t.realMinutes||0),0);
+              const totalEffMin2  = myT.reduce((s,t)=>s+(t.effectiveMinutes||0),0);
+              const avgAtt2   = totalSess ? Math.round(myT.reduce((s,t)=>s+(t.attendance||0),0)/totalSess) : 0;
+              const conceptCount2 = {};
+              myT.forEach(t=>(t.concepts||[]).forEach(c=>{conceptCount2[c]=(conceptCount2[c]||0)+1;}));
+              const topConcepts2 = Object.entries(conceptCount2).sort((a,b)=>b[1]-a[1]).slice(0,8);
 
-              // Top conceptos trabajados
-              const conceptCount = {};
-              myTrainings.forEach(t => (t.concepts||[]).forEach(c => { conceptCount[c]=(conceptCount[c]||0)+1; }));
-              const topConcepts = Object.entries(conceptCount).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([c])=>c);
+              const myM = matches.filter(m=>m.teams.includes(MY_TEAM));
+              let w2=0,d2=0,l2=0,gf2=0,gc2=0,sOn=0,sOff=0,sPost=0,rec=0,los=0,yel=0,red2=0;
+              myM.forEach(m=>{
+                const my=getMatchStats(m,MY_TEAM); const rv=m.teams[0]===MY_TEAM?m.b:m.a;
+                gf2+=my.goals; gc2+=rv.goals;
+                sOn+=my.shotsOn||0; sOff+=my.shotsOff||0; sPost+=my.shotsPost||0;
+                rec+=my.recoveries||0; los+=my.losses||0;
+                yel+=my.yellow||0; red2+=my.red||0;
+                if(my.goals>rv.goals)w2++; else if(my.goals===rv.goals)d2++; else l2++;
+              });
+              const totM=myM.length;
+              const winPct2=totM?Math.round((w2/totM)*100):0;
+              const avgSOn=totM?(sOn/totM).toFixed(1):0;
+              const avgRec=totM?(rec/totM).toFixed(1):0;
+              const avgLos=totM?(los/totM).toFixed(1):0;
+              const gDiff=gf2-gc2;
+
+              // ── Export CSV ───────────────────────────────────────────────
+              const doExportCSV = () => {
+                const rows = [
+                  ["FICHA JUGADORA",""],
+                  ["Nombre",`${p.name} ${p.surname}`],
+                  ["Dorsal", p.dorsal],
+                  ["Posición", p.pos],
+                  ["Equipo", p.team||MY_TEAM],
+                  ["Fecha nac.", p.birthDate||"—"],
+                  ["Edad", age||"—"],
+                  [""],
+                  ["ENTRENAMIENTOS (temporada)",""],
+                  ["Sesiones totales", totalSess],
+                  ["UA total temporada", totalUA2],
+                  ["UA media por sesión", avgUA2],
+                  ["RPE medio", avgRpe2],
+                  ["RPE máximo", maxRpe2],
+                  ["RPE mínimo", minRpe2],
+                  ["Minutaje total real", totalRealMin2],
+                  ["Minutaje efectivo total", totalEffMin2],
+                  ["Media asistentes/sesión", avgAtt2],
+                  [""],
+                  ["CONCEPTOS MÁS TRABAJADOS","Sesiones"],
+                  ...topConcepts2.map(([c,n])=>[c,n]),
+                  [""],
+                  ["PARTIDOS (temporada)",""],
+                  ["Partidos totales", totM],
+                  ["Victorias", w2],
+                  ["Empates", d2],
+                  ["Derrotas", l2],
+                  ["% Victoria", `${winPct2}%`],
+                  ["Goles a favor", gf2],
+                  ["Goles en contra", gc2],
+                  ["Diferencia de goles", gDiff>=0?`+${gDiff}`:gDiff],
+                  ["Media tiros a portería", avgSOn],
+                  ["Tiros fuera total", sOff],
+                  ["Tiros al palo total", sPost],
+                  ["Media recuperaciones", avgRec],
+                  ["Media pérdidas", avgLos],
+                  ["Tarjetas amarillas", yel],
+                  ["Tarjetas rojas", red2],
+                ];
+                const csv = "﻿" + rows.map(r=>r.join(";")).join("\n");
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+                a.download = `${p.name}_${p.surname}_ficha.csv`;
+                a.click(); URL.revokeObjectURL(a.href);
+              };
+
+              // ── Export PDF ───────────────────────────────────────────────
+              const doExportPDF = () => {
+                const win = window.open("","_blank");
+                if(!win) return;
+                win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+                <title>Ficha — ${p.name} ${p.surname}</title>
+                <style>
+                  *{box-sizing:border-box;margin:0;padding:0}
+                  body{font-family:Arial,sans-serif;color:#0f172a;padding:28px;background:#f8fafc}
+                  .header{background:linear-gradient(135deg,#061a3f,#0c3070);color:#fff;border-radius:16px;padding:24px;text-align:center;margin-bottom:20px}
+                  .header h1{font-size:26px;font-weight:900;margin-bottom:4px}
+                  .header p{opacity:.7;font-size:14px}
+                  .badge{display:inline-block;background:rgba(255,255,255,.2);border-radius:8px;padding:4px 12px;font-weight:900;font-size:14px;margin:4px}
+                  .section{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+                  .section h2{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#64748b;margin-bottom:12px;border-bottom:2px solid #f1f5f9;padding-bottom:6px}
+                  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+                  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+                  .kpi{background:#f8fafc;border-radius:8px;padding:10px;text-align:center;border:1px solid #e2e8f0}
+                  .kpi .val{font-size:22px;font-weight:900;color:#1e293b}
+                  .kpi .lbl{font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-top:2px}
+                  .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:12px}
+                  .row:last-child{border:none}
+                  .tag{display:inline-block;background:#e2e8f0;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;margin:2px}
+                  .bar{display:flex;border-radius:8px;overflow:hidden;height:20px;margin-top:8px}
+                  .bar div{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff}
+                </style></head><body>
+                <div class="header">
+                  <h1>${p.name} ${p.surname}</h1>
+                  <p>${p.team||MY_TEAM}</p>
+                  <div><span class="badge">#${p.dorsal}</span><span class="badge">${p.pos}</span><span class="badge">${age||"—"} años</span></div>
+                </div>
+                <div class="section">
+                  <h2>Datos personales</h2>
+                  <div class="row"><span>Fecha de nacimiento</span><strong>${p.birthDate||"—"}</strong></div>
+                  <div class="row"><span>Edad</span><strong>${age||"—"} años</strong></div>
+                  <div class="row"><span>Posición</span><strong>${p.pos}</strong></div>
+                  <div class="row"><span>Equipo</span><strong>${p.team||MY_TEAM}</strong></div>
+                </div>
+                <div class="section">
+                  <h2>🏋️ Entrenamientos — Temporada</h2>
+                  <div class="grid3" style="margin-bottom:10px">
+                    <div class="kpi"><div class="val">${totalSess}</div><div class="lbl">Sesiones</div></div>
+                    <div class="kpi"><div class="val">${totalUA2}</div><div class="lbl">UA Total</div></div>
+                    <div class="kpi"><div class="val">${avgUA2}</div><div class="lbl">UA Media/sesión</div></div>
+                    <div class="kpi"><div class="val">${avgRpe2}</div><div class="lbl">RPE Medio</div></div>
+                    <div class="kpi"><div class="val">${maxRpe2}</div><div class="lbl">RPE Máx.</div></div>
+                    <div class="kpi"><div class="val">${minRpe2}</div><div class="lbl">RPE Mín.</div></div>
+                    <div class="kpi"><div class="val">${totalRealMin2}'</div><div class="lbl">Min. Real Total</div></div>
+                    <div class="kpi"><div class="val">${totalEffMin2}'</div><div class="lbl">Min. Efectivo</div></div>
+                    <div class="kpi"><div class="val">${avgAtt2}</div><div class="lbl">Media asistentes</div></div>
+                  </div>
+                  ${topConcepts2.length?`<h2 style="margin-top:10px">Contenidos más trabajados</h2><div>${topConcepts2.map(([c,n])=>`<span class="tag">${c} (${n})</span>`).join("")}</div>`:""}
+                </div>
+                <div class="section">
+                  <h2>⚽ Partidos — Temporada</h2>
+                  <div class="grid4" style="margin-bottom:10px">
+                    <div class="kpi"><div class="val">${totM}</div><div class="lbl">Partidos</div></div>
+                    <div class="kpi"><div class="val">${winPct2}%</div><div class="lbl">% Victoria</div></div>
+                    <div class="kpi"><div class="val">${gf2}</div><div class="lbl">Goles favor</div></div>
+                    <div class="kpi"><div class="val">${gc2}</div><div class="lbl">Goles contra</div></div>
+                    <div class="kpi"><div class="val">${gDiff>=0?"+"+gDiff:gDiff}</div><div class="lbl">Dif. goles</div></div>
+                    <div class="kpi"><div class="val">${avgSOn}</div><div class="lbl">Tiros/partido</div></div>
+                    <div class="kpi"><div class="val">${avgRec}</div><div class="lbl">Recup./partido</div></div>
+                    <div class="kpi"><div class="val">${avgLos}</div><div class="lbl">Pérdidas/partido</div></div>
+                    <div class="kpi"><div class="val">${yel}</div><div class="lbl">Amarillas</div></div>
+                    <div class="kpi"><div class="val">${red2}</div><div class="lbl">Rojas</div></div>
+                    <div class="kpi"><div class="val">${w2}V ${d2}E ${l2}D</div><div class="lbl">Resultados</div></div>
+                  </div>
+                  ${totM>0?`<div class="bar"><div style="flex:${w2||0};background:#10b981">${w2>0?"V "+w2:""}</div><div style="flex:${d2||0};background:#f59e0b">${d2>0?"E "+d2:""}</div><div style="flex:${l2||0};background:#ef4444">${l2>0?"D "+l2:""}</div></div>`:""}
+                </div>
+                </body></html>`);
+                win.document.close(); win.print();
+              };
 
               return (
-                <div className="max-h-[90vh] overflow-y-auto">
-                  {/* Header */}
+                <div className="max-h-[92vh] overflow-y-auto">
+                  {/* ── Header ── */}
                   <div className="relative bg-gradient-to-br from-[#061a3f] via-[#0c3070] to-[#08285f] px-8 pt-10 pb-20 text-center">
                     <button type="button" onClick={closeModal}
                       className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/30 bg-white/15 text-white hover:bg-white/25">✕</button>
-                    {isMyTeam && (
-                      <span className="absolute left-4 top-4 rounded-xl bg-amber-400/20 border border-amber-400/40 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-300">★ {MY_TEAM}</span>
-                    )}
+                    {isMyTeam && <span className="absolute left-4 top-4 rounded-xl bg-amber-400/20 border border-amber-400/40 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-amber-300">★ {MY_TEAM}</span>}
                     <div className="mx-auto mb-4 h-32 w-32 overflow-hidden rounded-3xl border-4 border-white/30 shadow-2xl">
                       <PlayerAvatar player={p} size="h-full w-full" />
                     </div>
@@ -2152,103 +2284,122 @@ function RegistryPanel({ players, setPlayers, teams, setTeams, trainings = [], m
                     </div>
                   </div>
 
-                  {/* Datos básicos */}
-                  <div className="-mt-10 mx-5 mb-4 overflow-hidden rounded-2xl bg-white shadow-xl">
+                  {/* ── Datos básicos flotantes ── */}
+                  <div className="-mt-10 mx-5 mb-5 overflow-hidden rounded-2xl bg-white shadow-xl">
                     <div className="grid grid-cols-3 divide-x divide-slate-100 text-center">
-                      <div className="py-5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Edad</p>
-                        <p className="mt-1 text-3xl font-black text-slate-900">{age || "—"}</p>
-                        <p className="text-[10px] text-slate-400">{p.birthDate || ""}</p>
-                      </div>
-                      <div className="py-5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Equipo</p>
-                        <p className="mt-1 text-sm font-black text-slate-900 px-2 leading-tight">{p.team || MY_TEAM}</p>
-                      </div>
-                      <div className="py-5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Posición</p>
-                        <p className="mt-2 text-sm font-black text-slate-700">{p.pos}</p>
-                      </div>
+                      {[
+                        { label:"Edad",      val: age||"—",        sub: p.birthDate||"" },
+                        { label:"Equipo",    val: p.team||MY_TEAM, sub: "" },
+                        { label:"Posición",  val: p.pos,           sub: "" },
+                      ].map(({label,val,sub})=>(
+                        <div key={label} className="py-5 flex flex-col items-center justify-center">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+                          <p className="mt-1 text-xl font-black text-slate-900 leading-tight text-center px-2">{val}</p>
+                          {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   {/* ── Estadísticas MY_TEAM ── */}
                   {isMyTeam ? (
-                    <div className="mx-5 mb-5 space-y-4">
-                      {/* KPIs de entrenamientos */}
-                      <div>
-                        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">🏋️ Temporada en entrenamientos</p>
-                        <div className="grid grid-cols-3 gap-3">
+                    <div className="mx-5 mb-4 space-y-4">
+
+                      {/* Entrenamientos */}
+                      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-violet-600 to-fuchsia-600 px-4 py-2.5 text-center">
+                          <p className="text-xs font-black uppercase tracking-widest text-white">🏋️ Entrenamientos — Temporada</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 p-4">
                           {[
-                            { label: "Sesiones", val: totalSessions, color: "bg-violet-50 border-violet-200 text-violet-700" },
-                            { label: "Carga media UA", val: avgUA, color: "bg-amber-50 border-amber-200 text-amber-700" },
-                            { label: "RPE medio", val: avgRpe || "—", color: "bg-rose-50 border-rose-200 text-rose-700" },
-                          ].map(({ label, val, color }) => (
-                            <div key={label} className={cn("rounded-2xl border p-4 text-center", color)}>
-                              <p className="text-2xl font-black">{val}</p>
-                              <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide opacity-70">{label}</p>
+                            { label:"Sesiones",        val: totalSess,        color:"text-violet-700"  },
+                            { label:"UA Total",         val: totalUA2,         color:"text-amber-700"   },
+                            { label:"UA Media/sesión",  val: avgUA2,           color:"text-amber-600"   },
+                            { label:"RPE Medio",        val: avgRpe2||"—",     color:"text-rose-700"    },
+                            { label:"RPE Máximo",       val: maxRpe2,          color:"text-rose-800"    },
+                            { label:"RPE Mínimo",       val: minRpe2,          color:"text-emerald-700" },
+                            { label:"Min. Real Total",  val: `${totalRealMin2}'`, color:"text-sky-700"  },
+                            { label:"Min. Efectivo",    val: `${totalEffMin2}'`,  color:"text-sky-600"  },
+                            { label:"Asis. media",      val: avgAtt2||"—",    color:"text-slate-700"   },
+                          ].map(({label,val,color})=>(
+                            <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-center">
+                              <p className={cn("text-2xl font-black", color)}>{val}</p>
+                              <p className="mt-0.5 text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p>
                             </div>
                           ))}
                         </div>
+                        {topConcepts2.length > 0 && (
+                          <div className="border-t border-slate-100 px-4 pb-4">
+                            <p className="mb-2 pt-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Contenidos más trabajados</p>
+                            <div className="flex flex-wrap justify-center gap-2">
+                              {topConcepts2.map(([c,n])=>(
+                                <span key={c} className="rounded-xl bg-violet-100 border border-violet-200 px-3 py-1 text-xs font-black text-violet-700">{c} <span className="opacity-60">×{n}</span></span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Conceptos más trabajados */}
-                      {topConcepts.length > 0 && (
-                        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center">
-                          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Contenidos más trabajados</p>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {topConcepts.map(c => (
-                              <span key={c} className="rounded-xl bg-slate-200 px-3 py-1 text-xs font-black text-slate-700">{c}</span>
-                            ))}
-                          </div>
+                      {/* Partidos */}
+                      <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
+                        <div className="bg-gradient-to-r from-sky-600 to-blue-700 px-4 py-2.5 text-center">
+                          <p className="text-xs font-black uppercase tracking-widest text-white">⚽ Partidos — Temporada</p>
                         </div>
-                      )}
-
-                      {/* KPIs de partidos */}
-                      <div>
-                        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">⚽ Temporada en partidos</p>
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-3 gap-3 p-4">
                           {[
-                            { label: "Partidos", val: totalMatches, color: "bg-sky-50 border-sky-200 text-sky-700" },
-                            { label: "% Victoria", val: `${winPct}%`, color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
-                            { label: "Goles a favor", val: gf, color: "bg-blue-50 border-blue-200 text-blue-700" },
-                            { label: "Goles en contra", val: gc, color: "bg-red-50 border-red-200 text-red-700" },
-                          ].map(({ label, val, color }) => (
-                            <div key={label} className={cn("rounded-2xl border p-3 text-center", color)}>
-                              <p className="text-xl font-black">{val}</p>
-                              <p className="mt-0.5 text-[9px] font-black uppercase tracking-wide opacity-70">{label}</p>
+                            { label:"Partidos",          val: totM,                              color:"text-sky-700"     },
+                            { label:"% Victoria",        val: `${winPct2}%`,                    color:"text-emerald-700" },
+                            { label:"V / E / D",         val: `${w2} / ${d2} / ${l2}`,          color:"text-slate-700"   },
+                            { label:"Goles a favor",     val: gf2,                               color:"text-blue-700"    },
+                            { label:"Goles en contra",   val: gc2,                               color:"text-red-700"     },
+                            { label:"Dif. goles",        val: gDiff>=0?`+${gDiff}`:gDiff,        color: gDiff>=0?"text-emerald-700":"text-red-700" },
+                            { label:"Tiros/partido",     val: avgSOn,                            color:"text-indigo-700"  },
+                            { label:"Recup./partido",    val: avgRec,                            color:"text-teal-700"    },
+                            { label:"Pérdidas/partido",  val: avgLos,                            color:"text-orange-700"  },
+                            { label:"Amarillas",         val: yel,                               color:"text-amber-700"   },
+                            { label:"Rojas",             val: red2,                              color:"text-red-700"     },
+                          ].map(({label,val,color})=>(
+                            <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 p-3 text-center">
+                              <p className={cn("text-2xl font-black leading-tight", color)}>{val}</p>
+                              <p className="mt-0.5 text-[9px] font-black uppercase tracking-wide text-slate-400">{label}</p>
                             </div>
                           ))}
                         </div>
-                        {totalMatches > 0 && (
-                          <div className="mt-3 flex overflow-hidden rounded-xl">
-                            {[
-                              { n: wins,   label:"V", color:"bg-emerald-500" },
-                              { n: draws,  label:"E", color:"bg-amber-400"   },
-                              { n: losses, label:"D", color:"bg-rose-500"    },
-                            ].map(({ n, label, color }) => n > 0 && (
-                              <div key={label} className={cn("flex items-center justify-center py-2 text-xs font-black text-white", color)}
-                                style={{ flex: n }}>
-                                {label} {n}
-                              </div>
-                            ))}
+                        {totM > 0 && (
+                          <div className="px-4 pb-4">
+                            <div className="flex overflow-hidden rounded-xl h-6">
+                              {[[w2,"V","bg-emerald-500"],[d2,"E","bg-amber-400"],[l2,"D","bg-rose-500"]].map(([n,lbl,col])=> n>0 &&
+                                <div key={lbl} className={cn("flex items-center justify-center text-xs font-black text-white",col)} style={{flex:n}}>{lbl} {n}</div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="mx-5 mb-5 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-6 text-center">
-                      <p className="text-2xl mb-2">🔒</p>
+                    <div className="mx-5 mb-5 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-8 text-center">
+                      <p className="text-3xl mb-2">🔒</p>
                       <p className="text-sm font-black text-slate-500">Estadísticas detalladas</p>
                       <p className="mt-1 text-xs text-slate-400">Solo disponibles para jugadoras de <span className="font-black text-slate-600">{MY_TEAM}</span></p>
                     </div>
                   )}
 
-                  {/* Botón editar */}
-                  <div className="border-t border-slate-100 px-5 pb-6 pt-3 flex gap-2">
+                  {/* ── Botones ── */}
+                  <div className="border-t border-slate-100 px-5 pb-6 pt-3 flex flex-wrap gap-2">
                     <button type="button" onClick={() => { closeModal(); setTimeout(() => openModal("editPlayer", p), 50); }}
                       className="flex-1 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-600 py-3 text-sm font-black text-white transition hover:from-violet-400 hover:to-fuchsia-500">
                       ✏️ Editar ficha
                     </button>
+                    {isMyTeam && (<>
+                      <button type="button" onClick={doExportCSV}
+                        className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100">
+                        ↓ CSV
+                      </button>
+                      <button type="button" onClick={doExportPDF}
+                        className="rounded-2xl border border-sky-300 bg-sky-50 px-4 py-3 text-sm font-black text-sky-700 transition hover:bg-sky-100">
+                        ↓ PDF
+                      </button>
+                    </>)}
                   </div>
                 </div>
               );
