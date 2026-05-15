@@ -1987,25 +1987,26 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
                     : "border-slate-200 bg-white shadow-sm hover:shadow-md"
                 )}>
                 <div className={cn(
-                  "flex items-center gap-3 px-3 py-3",
+                  "flex items-center gap-3 px-4 py-4",
                   isSelected
                     ? "bg-gradient-to-r from-violet-700 to-fuchsia-700"
                     : "bg-gradient-to-r from-slate-700 to-slate-900"
                 )}>
                   {team.logoUrl
-                    ? <img src={team.logoUrl} className="h-10 w-10 shrink-0 rounded-xl object-cover" alt={team.name} />
-                    : <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 p-[2px]">
-                        <div className="flex h-full w-full items-center justify-center rounded-[9px] bg-red-50 text-xs font-black text-red-900">{team.logo || initials(team.name)}</div>
+                    ? <img src={team.logoUrl} className="h-14 w-14 shrink-0 rounded-xl object-cover" alt={team.name} />
+                    : <div className="h-14 w-14 shrink-0 rounded-xl bg-gradient-to-br from-yellow-400 via-orange-400 to-red-400 p-[2.5px]">
+                        <div className="flex h-full w-full items-center justify-center rounded-[9px] bg-red-50 text-sm font-black text-red-900">{team.logo || initials(team.name)}</div>
                       </div>
                   }
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-white">
+                    <p className="truncate text-base font-black text-white">
                       {isMine && <span className="mr-1 text-amber-300">★</span>}{team.name}
                     </p>
-                    <p className="mt-0.5 text-[10px] text-white/60">{team.category} · {count} jug.</p>
+                    <p className="mt-0.5 text-xs text-white/60">{team.category}</p>
+                    <p className="text-xs font-bold text-white/80">{count} jugadoras</p>
                   </div>
                   <button type="button" onClick={(e) => { e.stopPropagation(); openModal("editTeam", team); }}
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-white/25 bg-white/10 text-[10px] opacity-0 transition group-hover:opacity-100 hover:bg-white/25">
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/25 bg-white/10 text-xs opacity-0 transition group-hover:opacity-100 hover:bg-white/25">
                     ✏️
                   </button>
                 </div>
@@ -2048,27 +2049,32 @@ function RegistryPanel({ players, setPlayers, teams, setTeams }) {
 
         {selectedTeam ? (
           teamPlayers.length > 0
-            ? <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+            ? <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                 {teamPlayers.map((p) => (
-                  <div key={p.id} className="group relative flex flex-col items-center gap-1.5 rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md">
+                  <div key={p.id} className="group relative flex flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg">
                     {/* Botón visor (lupa) */}
                     <button type="button" onClick={() => openModal("viewPlayer", p)}
-                      className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-xs opacity-0 transition group-hover:opacity-100 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
+                      className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-xl border border-slate-200 bg-white text-sm opacity-0 transition group-hover:opacity-100 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-600"
                       title="Ver ficha completa">
                       🔍
                     </button>
                     {/* Botón editar */}
                     <button type="button" onClick={() => openModal("editPlayer", p)}
-                      className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-[10px] opacity-0 transition group-hover:opacity-100 hover:border-violet-300 hover:bg-violet-50"
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-xl border border-slate-200 bg-white text-xs opacity-0 transition group-hover:opacity-100 hover:border-violet-300 hover:bg-violet-50"
                       title="Editar jugadora">
                       ✏️
                     </button>
-                    <PlayerAvatar player={p} size="h-14 w-14" />
-                    <div className="w-full">
-                      <p className="text-[10px] font-black text-slate-400">#{p.dorsal}</p>
-                      <p className="w-full truncate text-xs font-black leading-tight text-slate-900">{p.name}</p>
-                      <p className="w-full truncate text-[10px] text-slate-500">{p.surname}</p>
-                      <span className="mt-1 inline-block rounded-lg bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">{p.pos}</span>
+                    <PlayerAvatar player={p} size="h-20 w-20" />
+                    <div className="w-full space-y-0.5">
+                      <p className="text-xs font-black text-slate-400">#{p.dorsal}</p>
+                      <p className="w-full truncate text-sm font-black leading-tight text-slate-900">{p.name}</p>
+                      <p className="w-full truncate text-xs font-semibold text-slate-500">{p.surname}</p>
+                      <div className="pt-1">
+                        <span className="inline-block rounded-xl bg-violet-50 px-2.5 py-1 text-[11px] font-black text-violet-700 border border-violet-200">{p.pos}</span>
+                      </div>
+                      {p.birthDate && (
+                        <p className="text-[10px] text-slate-400 pt-0.5">{calculateAge(p.birthDate)} años</p>
+                      )}
                     </div>
                   </div>
                 ))}
